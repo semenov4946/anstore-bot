@@ -63,6 +63,19 @@ async def iphones(message: Message):
 @dp.message()
 async def other_handler(message: Message):
     await message.answer("Розділ у розробці ✍️")
+@dp.message(lambda m: m.text == "💳 Моя карта лояльності")
+async def loyalty_card(message: Message):
+    user_id = message.from_user.id
+
+    await message.answer(
+        f"""💳 Ваша карта лояльності ANSTORE
+
+👤 ID: {user_id}
+⭐ Статус: Silver
+💰 Знижка: 5%
+
+📌 Покажіть це повідомлення менеджеру"""
+    )
 async def main():
     await dp.start_polling(bot)
 
