@@ -2,8 +2,13 @@ import asyncio
 import os
 
 from aiogram import Bot, Dispatcher
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import (
+    Message,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton
+)
 from aiogram.filters import Command
 
 TOKEN = os.getenv("BOT_TOKEN")
