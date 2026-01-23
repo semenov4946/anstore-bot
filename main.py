@@ -2,6 +2,7 @@ import asyncio
 import os
 
 from aiogram import Bot, Dispatcher
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import Command
 
