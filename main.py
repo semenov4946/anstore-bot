@@ -45,3 +45,22 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+@dp.message(lambda m: m.text == "📱 Айфони в наявності")
+async def iphones(message: Message):
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="📢 Перейти в канал з наявністю",
+                    url="https://t.me/anstore_st"
+                )
+            ]
+        ]
+    )
+
+    await message.answer(
+        "📱 Актуальна наявність iPhone з фото та цінами 👇",
+        reply_markup=keyboard
+    )
