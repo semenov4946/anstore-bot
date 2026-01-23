@@ -40,9 +40,7 @@ async def start_handler(message: Message):
     )
 
 
-@dp.message()
-async def other_handler(message: Message):
-    await message.answer("Розділ у розробці ✍️")
+
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 @dp.message(lambda m: m.text == "📱 Айфони в наявності")
@@ -62,7 +60,9 @@ async def iphones(message: Message):
         "📱 Актуальна наявність iPhone з фото та цінами 👇",
         reply_markup=keyboard
     )
-
+@dp.message()
+async def other_handler(message: Message):
+    await message.answer("Розділ у розробці ✍️")
 async def main():
     await dp.start_polling(bot)
 
