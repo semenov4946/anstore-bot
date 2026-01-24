@@ -21,7 +21,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
-SHEETS_URL = "https://script.google.com/macros/s/AKfycbw2kiPHLcqC0UBJfh73sya6rOu0Xlle8Iyf0fuPiVRHYVCytOdAdfU5R08oiBjSqsGytg/exec"
+SHEETS_URL = "https://script.google.com/macros/s/AKfycbyUiZtgcZ-Z-pCGhb9TbzkiwOpdV18vBbDvOrRfCGgMjwssmPIRE67iaDZKGmVRT2RdGA/exec"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -56,13 +56,19 @@ async def get_user(user_id: int) -> dict:
             return json.loads(await resp.text())
 
 async def save_user(payload: dict):
+    body = json.dumps(payload).encode("utf-8")
+
     async with aiohttp.ClientSession() as session:
-        await session.post(
+        async with session.post(
             SHEETS_URL,
-            data=json.dumps(payload),
-            headers={"Content-Type": "application/json"},
+            data=body,
+            headers={
+                "Content-Type": "application/json",
+                "Content-Length": str(len(body))
+            },
             timeout=aiohttp.ClientTimeout(total=10)
-        )
+        ) as resp:
+            await resp.text()
 
 # ========= START =========
 @dp.message(Command("start"))
@@ -77,12 +83,10 @@ async def start_handler(message: Message):
 async def iphones(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="📢 Перейти в канал з наявністю",
-                    url="https://t.me/anstore_st"
-                )
-            ]
+            [InlineKeyboardButton(
+                text="📢 Перейти в канал з наявністю",
+                url="https://t.me/anstore_st"
+            )]
         ]
     )
     await message.answer("📱 Актуальна наявність iPhone 👇", reply_markup=kb)
@@ -98,15 +102,15 @@ async def loyalty(message: Message, state: FSMContext):
     except Exception:
         data = {"found": False}
 
-    if data.get("found") is True:
-        text = (
+    if data.get("found"):
+        await message.answer(
             "💳 Ваша карта лояльності ANSTORE\n\n"
             f"👤 {data['first_name']} {data['last_name']}\n"
             f"📞 {data['phone']}\n"
             "⭐ Статус: Silver\n"
-            "💰 Знижка: 5%"
+            "💰 Знижка: 5%",
+            reply_markup=main_menu()
         )
-        await message.answer(text, reply_markup=main_menu())
     else:
         await message.answer("Введіть ваше ім'я:")
         await state.set_state(Register.first)
@@ -142,14 +146,14 @@ async def reg_phone(message: Message, state: FSMContext):
     await save_user(payload)
     await state.clear()
 
-    text = (
+    await message.answer(
         "💳 Ваша карта лояльності ANSTORE\n\n"
         f"👤 {payload['first_name']} {payload['last_name']}\n"
         f"📞 {payload['phone']}\n"
         "⭐ Статус: Silver\n"
-        "💰 Знижка: 5%"
+        "💰 Знижка: 5%",
+        reply_markup=main_menu()
     )
-    await message.answer(text, reply_markup=main_menu())
 
 # ========= OTHER =========
 @dp.message(lambda m: m.text in ["🛠 Сервісний центр", "🎁 Акції", "📞 Зв'язок з менеджером"])
