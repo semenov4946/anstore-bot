@@ -13,6 +13,7 @@ from aiogram.types import (
 from aiogram.filters import Command
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.memory import MemoryStorage
 
 # ========= CONFIG =========
 TOKEN = os.getenv("BOT_TOKEN")
@@ -22,7 +23,7 @@ if not TOKEN:
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbwNtUxaz8gOA5_NLyQqV36xJomeR21iIVjZ1TbbBDc0IdVTMHkKZin2b17GI9empcOQ/exec"
 
 bot = Bot(token=TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(storage=MemoryStorage())
 
 # ========= STATES =========
 class Register(StatesGroup):
@@ -106,7 +107,8 @@ async def reg_phone(message: Message, state: FSMContext):
             "first_name": data["first"],
             "last_name": data["last"],
             "phone": message.contact.phone_number
-        }
+        },
+        timeout=10
     )
 
     await message.answer(
