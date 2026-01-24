@@ -1,6 +1,7 @@
 import asyncio
 import os
 import requests
+import json
 
 from aiogram import Bot, Dispatcher
 from aiogram.types import (
@@ -48,7 +49,7 @@ def main_menu():
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     await message.answer(
-        "Вітаємо в Anstore | Apple сервіс та техніка 🍏\n\nОберіть пункт меню 👇",
+        "Вітаємо в Anstore | Apple сервіс та техніка 🍏",
         reply_markup=main_menu()
     )
 
@@ -65,15 +66,17 @@ async def iphones(message: Message):
             ]
         ]
     )
-
     await message.answer(
-        "📱 Актуальна наявність iPhone з фото та цінами 👇",
+        "📱 Актуальна наявність iPhone 👇",
         reply_markup=keyboard
     )
 
-# ========= LOYALTY CARD (FIXED) =========
+# ========= LOYALTY CARD (FINAL FIX) =========
 @dp.message(lambda m: m.text == "💳 Моя карта лояльності")
 async def loyalty_start(message: Message, state: FSMContext):
+    # 🔥 ЖОРСТКО СКИДАЄМО FSM
+    await state.clear()
+
     user_id = message.from_user.id
 
     try:
@@ -82,20 +85,19 @@ async def loyalty_start(message: Message, state: FSMContext):
             params={"user_id": user_id},
             timeout=10
         )
-        data = r.json()
+        data = json.loads(r.text)
     except Exception:
         data = {"found": False}
 
-    if data.get("found"):
+    if data.get("found") is True:
         await message.answer(
             f"""💳 Ваша карта лояльності ANSTORE
 
-👤 {data['first_name']} {data['last_name']}
-📞 {data['phone']}
+👤 {data.get('first_name')}
+👤 {data.get('last_name')}
+📞 {data.get('phone')}
 ⭐ Статус: Silver
-💰 Знижка: 5%
-
-📌 Покажіть це повідомлення менеджеру""",
+💰 Знижка: 5%""",
             reply_markup=main_menu()
         )
     else:
@@ -117,44 +119,4 @@ async def reg_last(message: Message, state: FSMContext):
         resize_keyboard=True,
         one_time_keyboard=True
     )
-
-    await message.answer("Поділіться номером телефону:", reply_markup=kb)
-    await state.set_state(Register.phone)
-
-@dp.message(Register.phone)
-async def reg_phone(message: Message, state: FSMContext):
-    data = await state.get_data()
-
-    requests.post(
-        SHEETS_URL,
-        json={
-            "user_id": message.from_user.id,
-            "first_name": data["first"],
-            "last_name": data["last"],
-            "phone": message.contact.phone_number
-        },
-        timeout=10
-    )
-
-    await message.answer(
-        "✅ Карту лояльності Anstore створено!\n"
-        "📌 Покажіть її менеджеру при покупці 💳",
-        reply_markup=main_menu()
-    )
-    await state.clear()
-
-# ========= OTHER =========
-@dp.message(lambda m: m.text in ["🛠 Сервісний центр", "🎁 Акції", "📞 Звʼязок з менеджером"])
-async def other_sections(message: Message):
-    await message.answer("Розділ у розробці 🛠")
-
-@dp.message()
-async def fallback(message: Message):
-    await message.answer("Оберіть пункт з меню 👇", reply_markup=main_menu())
-
-# ========= RUN =========
-async def main():
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    await
