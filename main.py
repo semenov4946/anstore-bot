@@ -52,7 +52,7 @@ async def start_handler(message: Message):
         reply_markup=main_menu()
     )
 
-# ========= IPHONES -> CHANNEL =========
+# ========= IPHONES =========
 @dp.message(lambda m: m.text == "📱 Айфони в наявності")
 async def iphones(message: Message):
     keyboard = InlineKeyboardMarkup(
@@ -71,11 +71,36 @@ async def iphones(message: Message):
         reply_markup=keyboard
     )
 
-# ========= LOYALTY CARD =========
+# ========= LOYALTY CARD (FIXED) =========
 @dp.message(lambda m: m.text == "💳 Моя карта лояльності")
 async def loyalty_start(message: Message, state: FSMContext):
-    await message.answer("Введіть ваше імʼя:")
-    await state.set_state(Register.first)
+    user_id = message.from_user.id
+
+    try:
+        r = requests.get(
+            SHEETS_URL,
+            params={"user_id": user_id},
+            timeout=10
+        )
+        data = r.json()
+    except Exception:
+        data = {"found": False}
+
+    if data.get("found"):
+        await message.answer(
+            f"""💳 Ваша карта лояльності ANSTORE
+
+👤 {data['first_name']} {data['last_name']}
+📞 {data['phone']}
+⭐ Статус: Silver
+💰 Знижка: 5%
+
+📌 Покажіть це повідомлення менеджеру""",
+            reply_markup=main_menu()
+        )
+    else:
+        await message.answer("Введіть ваше імʼя:")
+        await state.set_state(Register.first)
 
 @dp.message(Register.first)
 async def reg_first(message: Message, state: FSMContext):
@@ -118,12 +143,11 @@ async def reg_phone(message: Message, state: FSMContext):
     )
     await state.clear()
 
-# ========= OTHER BUTTONS =========
+# ========= OTHER =========
 @dp.message(lambda m: m.text in ["🛠 Сервісний центр", "🎁 Акції", "📞 Звʼязок з менеджером"])
 async def other_sections(message: Message):
     await message.answer("Розділ у розробці 🛠")
 
-# ========= FALLBACK =========
 @dp.message()
 async def fallback(message: Message):
     await message.answer("Оберіть пункт з меню 👇", reply_markup=main_menu())
