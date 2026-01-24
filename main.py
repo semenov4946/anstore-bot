@@ -45,8 +45,8 @@ def main_menu():
         resize_keyboard=True
     )
 
-# ========= GOOGLE HELPERS =========
-async def get_user(user_id: int) -> dict:
+# ========= GOOGLE =========
+async def get_user(user_id: int):
     async with aiohttp.ClientSession() as session:
         async with session.get(
             SHEETS_URL,
@@ -57,7 +57,6 @@ async def get_user(user_id: int) -> dict:
 
 async def save_user(payload: dict):
     body = json.dumps(payload).encode("utf-8")
-
     async with aiohttp.ClientSession() as session:
         async with session.post(
             SHEETS_URL,
@@ -91,7 +90,7 @@ async def iphones(message: Message):
     )
     await message.answer("📱 Актуальна наявність iPhone 👇", reply_markup=kb)
 
-# ========= LOYALTY CARD =========
+# ========= LOYALTY =========
 @dp.message(lambda m: m.text == "💳 Моя карта лояльності")
 async def loyalty(message: Message, state: FSMContext):
     await state.clear()
@@ -103,12 +102,15 @@ async def loyalty(message: Message, state: FSMContext):
         data = {"found": False}
 
     if data.get("found"):
+        status = data.get("status", "Silver")
+        discount = data.get("discount", 5)
+
         await message.answer(
             "💳 Ваша карта лояльності ANSTORE\n\n"
             f"👤 {data['first_name']} {data['last_name']}\n"
             f"📞 {data['phone']}\n"
-            "⭐ Статус: Silver\n"
-            "💰 Знижка: 5%",
+            f"⭐ Статус: {status}\n"
+            f"💰 Знижка: {discount}%",
             reply_markup=main_menu()
         )
     else:
