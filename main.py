@@ -1,7 +1,7 @@
 import asyncio
 import os
-import requests
 import json
+import aiohttp
 
 from aiogram import Bot, Dispatcher
 from aiogram.types import (
@@ -45,6 +45,25 @@ def main_menu():
         resize_keyboard=True
     )
 
+# ========= HTTP HELPERS =========
+async def get_user(user_id: int):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(
+            SHEETS_URL,
+            params={"user_id": user_id},
+            timeout=aiohttp.ClientTimeout(total=10)
+        ) as resp:
+            text = await resp.text()
+            return json.loads(text)
+
+async def save_user(data: dict):
+    async with aiohttp.ClientSession() as session:
+        await session.post(
+            SHEETS_URL,
+            json=data,
+            timeout=aiohttp.ClientTimeout(total=10)
+        )
+
 # ========= START =========
 @dp.message(Command("start"))
 async def start_handler(message: Message):
@@ -56,42 +75,32 @@ async def start_handler(message: Message):
 # ========= IPHONES =========
 @dp.message(lambda m: m.text == "📱 Айфони в наявності")
 async def iphones(message: Message):
-    keyboard = InlineKeyboardMarkup(
+    kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="📢 Перейти в канал з наявністю",
-                    url="https://t.me/anstore_st"
-                )
-            ]
+            [InlineKeyboardButton(
+                text="📢 Перейти в канал з наявністю",
+                url="https://t.me/anstore_st"
+            )]
         ]
     )
-    await message.answer(
-        "📱 Актуальна наявність iPhone 👇",
-        reply_markup=keyboard
-    )
+    await message.answer("📱 Актуальна наявність iPhone 👇", reply_markup=kb)
 
-# ========= LOYALTY CARD =========
+# ========= LOYALTY =========
 @dp.message(lambda m: m.text == "💳 Моя карта лояльності")
-async def loyalty_start(message: Message, state: FSMContext):
+async def loyalty(message: Message, state: FSMContext):
     await state.clear()
     user_id = message.from_user.id
 
     try:
-        r = requests.get(
-            SHEETS_URL,
-            params={"user_id": user_id},
-            timeout=10
-        )
-        data = json.loads(r.text)
+        data = await get_user(user_id)
     except Exception:
         data = {"found": False}
 
-    if data.get("found") is True:
+    if data.get("found"):
         text = (
             "💳 Ваша карта лояльності ANSTORE\n\n"
-            f"👤 {data.get('first_name')} {data.get('last_name')}\n"
-            f"📞 {data.get('phone')}\n"
+            f"👤 {data['first_name']} {data['last_name']}\n"
+            f"📞 {data['phone']}\n"
             "⭐ Статус: Silver\n"
             "💰 Знижка: 5%"
         )
@@ -109,7 +118,6 @@ async def reg_first(message: Message, state: FSMContext):
 @dp.message(Register.last)
 async def reg_last(message: Message, state: FSMContext):
     await state.update_data(last=message.text)
-
     kb = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text="📞 Поділитись номером", request_contact=True)]],
         resize_keyboard=True,
@@ -122,23 +130,27 @@ async def reg_last(message: Message, state: FSMContext):
 async def reg_phone(message: Message, state: FSMContext):
     data = await state.get_data()
 
-    requests.post(
-        SHEETS_URL,
-        json={
-            "user_id": message.from_user.id,
-            "first_name": data["first"],
-            "last_name": data["last"],
-            "phone": message.contact.phone_number
-        },
-        timeout=10
-    )
+    await save_user({
+        "user_id": message.from_user.id,
+        "first_name": data["first"],
+        "last_name": data["last"],
+        "phone": message.contact.phone_number
+    })
 
     await state.clear()
-    await message.answer("✅ Карту лояльності створено!", reply_markup=main_menu())
+
+    text = (
+        "💳 Ваша карта лояльності ANSTORE\n\n"
+        f"👤 {data['first']} {data['last']}\n"
+        f"📞 {message.contact.phone_number}\n"
+        "⭐ Статус: Silver\n"
+        "💰 Знижка: 5%"
+    )
+    await message.answer(text, reply_markup=main_menu())
 
 # ========= OTHER =========
 @dp.message(lambda m: m.text in ["🛠 Сервісний центр", "🎁 Акції", "📞 Зв'язок з менеджером"])
-async def other_sections(message: Message):
+async def other(message: Message):
     await message.answer("Розділ у розробці 🛠")
 
 @dp.message()
