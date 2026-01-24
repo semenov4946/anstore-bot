@@ -45,22 +45,22 @@ def main_menu():
         resize_keyboard=True
     )
 
-# ========= HTTP HELPERS =========
-async def get_user(user_id: int):
+# ========= GOOGLE HELPERS =========
+async def get_user(user_id: int) -> dict:
     async with aiohttp.ClientSession() as session:
         async with session.get(
             SHEETS_URL,
-            params={"user_id": user_id},
+            params={"user_id": str(user_id)},
             timeout=aiohttp.ClientTimeout(total=10)
         ) as resp:
-            text = await resp.text()
-            return json.loads(text)
+            return json.loads(await resp.text())
 
-async def save_user(data: dict):
+async def save_user(payload: dict):
     async with aiohttp.ClientSession() as session:
         await session.post(
             SHEETS_URL,
-            json=data,
+            data=json.dumps(payload),
+            headers={"Content-Type": "application/json"},
             timeout=aiohttp.ClientTimeout(total=10)
         )
 
@@ -77,15 +77,17 @@ async def start_handler(message: Message):
 async def iphones(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(
-                text="📢 Перейти в канал з наявністю",
-                url="https://t.me/anstore_st"
-            )]
+            [
+                InlineKeyboardButton(
+                    text="📢 Перейти в канал з наявністю",
+                    url="https://t.me/anstore_st"
+                )
+            ]
         ]
     )
     await message.answer("📱 Актуальна наявність iPhone 👇", reply_markup=kb)
 
-# ========= LOYALTY =========
+# ========= LOYALTY CARD =========
 @dp.message(lambda m: m.text == "💳 Моя карта лояльності")
 async def loyalty(message: Message, state: FSMContext):
     await state.clear()
@@ -96,7 +98,7 @@ async def loyalty(message: Message, state: FSMContext):
     except Exception:
         data = {"found": False}
 
-    if data.get("found"):
+    if data.get("found") is True:
         text = (
             "💳 Ваша карта лояльності ANSTORE\n\n"
             f"👤 {data['first_name']} {data['last_name']}\n"
@@ -111,13 +113,13 @@ async def loyalty(message: Message, state: FSMContext):
 
 @dp.message(Register.first)
 async def reg_first(message: Message, state: FSMContext):
-    await state.update_data(first=message.text)
+    await state.update_data(first=message.text.strip())
     await message.answer("Введіть ваше прізвище:")
     await state.set_state(Register.last)
 
 @dp.message(Register.last)
 async def reg_last(message: Message, state: FSMContext):
-    await state.update_data(last=message.text)
+    await state.update_data(last=message.text.strip())
     kb = ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text="📞 Поділитись номером", request_contact=True)]],
         resize_keyboard=True,
@@ -130,19 +132,20 @@ async def reg_last(message: Message, state: FSMContext):
 async def reg_phone(message: Message, state: FSMContext):
     data = await state.get_data()
 
-    await save_user({
-        "user_id": message.from_user.id,
+    payload = {
+        "user_id": str(message.from_user.id),
         "first_name": data["first"],
         "last_name": data["last"],
         "phone": message.contact.phone_number
-    })
+    }
 
+    await save_user(payload)
     await state.clear()
 
     text = (
         "💳 Ваша карта лояльності ANSTORE\n\n"
-        f"👤 {data['first']} {data['last']}\n"
-        f"📞 {message.contact.phone_number}\n"
+        f"👤 {payload['first_name']} {payload['last_name']}\n"
+        f"📞 {payload['phone']}\n"
         "⭐ Статус: Silver\n"
         "💰 Знижка: 5%"
     )
