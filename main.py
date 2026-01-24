@@ -1,5 +1,6 @@
 import asyncio
 import os
+import requests
 
 from aiogram import Bot, Dispatcher
 from aiogram.types import (
@@ -10,15 +11,26 @@ from aiogram.types import (
     InlineKeyboardButton
 )
 from aiogram.filters import Command
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.context import FSMContext
 
+# ========= CONFIG =========
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
+SHEETS_URL = "https://script.google.com/macros/s/AKfycbwNtUxaz8gOA5_NLyQqV36xJomeR21iIVjZ1TbbBDc0IdVTMHkKZin2b17GI9empcOQ/exec"
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
+# ========= STATES =========
+class Register(StatesGroup):
+    first = State()
+    last = State()
+    phone = State()
 
+# ========= MENU =========
 def main_menu():
     return ReplyKeyboardMarkup(
         keyboard=[
@@ -31,18 +43,15 @@ def main_menu():
         resize_keyboard=True
     )
 
-
+# ========= START =========
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     await message.answer(
-        "Вітаємо в Anstore | Apple сервіс та техніка 🍏",
+        "Вітаємо в Anstore | Apple сервіс та техніка 🍏\n\nОберіть пункт меню 👇",
         reply_markup=main_menu()
     )
 
-
-
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
+# ========= IPHONES -> CHANNEL =========
 @dp.message(lambda m: m.text == "📱 Айфони в наявності")
 async def iphones(message: Message):
     keyboard = InlineKeyboardMarkup(
@@ -60,21 +69,66 @@ async def iphones(message: Message):
         "📱 Актуальна наявність iPhone з фото та цінами 👇",
         reply_markup=keyboard
     )
+
+# ========= LOYALTY CARD =========
 @dp.message(lambda m: m.text == "💳 Моя карта лояльності")
-async def loyalty_card(message: Message):
-    user_id = message.from_user.id
+async def loyalty_start(message: Message, state: FSMContext):
+    await message.answer("Введіть ваше імʼя:")
+    await state.set_state(Register.first)
+
+@dp.message(Register.first)
+async def reg_first(message: Message, state: FSMContext):
+    await state.update_data(first=message.text)
+    await message.answer("Введіть ваше прізвище:")
+    await state.set_state(Register.last)
+
+@dp.message(Register.last)
+async def reg_last(message: Message, state: FSMContext):
+    await state.update_data(last=message.text)
+
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="📞 Поділитись номером", request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+
+    await message.answer("Поділіться номером телефону:", reply_markup=kb)
+    await state.set_state(Register.phone)
+
+@dp.message(Register.phone)
+async def reg_phone(message: Message, state: FSMContext):
+    data = await state.get_data()
+
+    requests.post(
+        SHEETS_URL,
+        json={
+            "user_id": message.from_user.id,
+            "first_name": data["first"],
+            "last_name": data["last"],
+            "phone": message.contact.phone_number
+        }
+    )
 
     await message.answer(
-        f"""💳 Ваша карта лояльності ANSTORE
-👤 ID: {user_id}
-⭐ Статус: Silver
-💰 Знижка: 5%
-
-📌 Покажіть це повідомлення менеджеру"""
+        "✅ Карту лояльності Anstore створено!\n"
+        "📌 Покажіть її менеджеру при покупці 💳",
+        reply_markup=main_menu()
     )
+    await state.clear()
+
+# ========= OTHER BUTTONS =========
+@dp.message(lambda m: m.text in ["🛠 Сервісний центр", "🎁 Акції", "📞 Звʼязок з менеджером"])
+async def other_sections(message: Message):
+    await message.answer("Розділ у розробці 🛠")
+
+# ========= FALLBACK =========
+@dp.message()
+async def fallback(message: Message):
+    await message.answer("Оберіть пункт з меню 👇", reply_markup=main_menu())
+
+# ========= RUN =========
 async def main():
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
