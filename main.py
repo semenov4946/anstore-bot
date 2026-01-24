@@ -21,7 +21,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
-SHEETS_URL = "https://script.google.com/macros/s/AKfycbwNtUxaz8gOA5_NLyQqV36xJomeR21iIVjZ1TbbBDc0IdVTMHkKZin2b17GI9empcOQ/exec"
+SHEETS_URL = "https://script.google.com/macros/s/AKfycbw2kiPHLcqC0UBJfh73sya6rOu0Xlle8Iyf0fuPiVRHYVCytOdAdfU5R08oiBjSqsGytg/exec"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
