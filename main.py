@@ -26,7 +26,9 @@ ADMIN_IDS = {1488727512, 568179276}
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbz5oHAJVvLlg7KjeplVMVQQ_ApGzpHNbwinOi2l9ifmMcEFHg3M81Xc_zAzSjmZGs6I/exec"
 CHANNEL_URL = "https://t.me/anstore_st"
 MANAGER_TG = "https://t.me/anstore_support"
+MAP_URL = "https://maps.google.com/?q=49.8397,24.0297"  # ← заміни на свої координати
 
+# ================= BOT =================
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
@@ -49,14 +51,12 @@ LEVELS = [
 def get_level(points: int):
     current = LEVELS[0]
     next_level = None
-
     for lvl in LEVELS:
         if points >= lvl[1]:
             current = lvl
         else:
             next_level = lvl
             break
-
     return current, next_level
 
 # ================= MENU =================
@@ -95,8 +95,7 @@ async def save_user(payload: dict):
 async def start_handler(message: Message):
     SUBSCRIBERS.add(message.chat.id)
     await message.answer(
-        "🍏 Anstore | Apple сервіс та техніка\n\n"
-        "Оберіть розділ 👇",
+        "🍏 Anstore | Apple сервіс та техніка\n\nОберіть розділ 👇",
         reply_markup=main_menu()
     )
 
@@ -104,9 +103,7 @@ async def start_handler(message: Message):
 @dp.message(lambda m: m.text == "📱 Айфони в наявності")
 async def iphones(message: Message):
     kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📢 Перейти в канал", url=CHANNEL_URL)]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(text="📢 Перейти в канал", url=CHANNEL_URL)]]
     )
     await message.answer("📱 Актуальна наявність iPhone 👇", reply_markup=kb)
 
@@ -114,13 +111,10 @@ async def iphones(message: Message):
 @dp.message(lambda m: m.text == "🎁 Акції")
 async def promotions(message: Message):
     kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📢 Відкрити канал", url=CHANNEL_URL)]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(text="📢 Відкрити канал", url=CHANNEL_URL)]]
     )
     await message.answer(
-        "🎁 Актуальні акції Anstore 👇\n\n"
-        "ℹ️ У каналі натисніть на #акція",
+        "🎁 Актуальні акції Anstore 👇\n\nℹ️ У каналі натисніть на #акція",
         reply_markup=kb
     )
 
@@ -153,8 +147,7 @@ async def loyalty(message: Message, state: FSMContext):
     )
 
     if next_level:
-        need = next_level[1] - points
-        text += f"\n⬆️ До рівня {next_level[0]}: {need} грн"
+        text += f"\n⬆️ До рівня {next_level[0]}: {next_level[1] - points} грн"
     else:
         text += "\n🏆 Максимальний рівень досягнуто"
 
@@ -195,6 +188,7 @@ async def reg_phone(message: Message, state: FSMContext):
 async def service_center(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
+            [InlineKeyboardButton(text="📍 Ми на карті", url=MAP_URL)],
             [InlineKeyboardButton(text="📞 Записатись до сервісу", url=MANAGER_TG)]
         ]
     )
@@ -203,18 +197,22 @@ async def service_center(message: Message):
         "• Ремонт iPhone\n"
         "• Заміна дисплею / скла\n"
         "• Заміна акумулятора\n"
-        "• Діагностика\n\n"
-        "👇 Натисніть кнопку для запису",
+        "• Діагностика",
         reply_markup=kb
     )
 
 # ================= CONTACT =================
 @dp.message(lambda m: m.text == "📞 Звʼязок з менеджером")
 async def contact(message: Message):
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📍 Google Maps", url=MAP_URL)],
+            [InlineKeyboardButton(text="💬 Написати менеджеру", url=MANAGER_TG)]
+        ]
+    )
     await message.answer(
-        "📞 Звʼязок з менеджером\n\n"
-        "💬 Telegram: https://t.me/anstore_support\n"
-        "📞 Телефон: +380634739011"
+        "📞 Звʼязок з Anstore",
+        reply_markup=kb
     )
 
 # ================= ADMIN SEND =================
@@ -223,29 +221,31 @@ async def admin_send(message: Message):
     if message.from_user.id not in ADMIN_IDS:
         return
 
-    if message.photo:
-        caption = (message.caption or "").replace("/send", "", 1).strip()
-        for chat_id in list(SUBSCRIBERS):
-            try:
-                await bot.send_photo(chat_id, message.photo[-1].file_id, caption=caption)
-            except:
-                SUBSCRIBERS.discard(chat_id)
-        return
-
-    text = message.text.replace("/send", "", 1).strip()
-    if not text:
-        return
-
     for chat_id in list(SUBSCRIBERS):
         try:
-            await bot.send_message(chat_id, text)
+            if message.photo:
+                await bot.send_photo(
+                    chat_id,
+                    message.photo[-1].file_id,
+                    caption=(message.caption or "").replace("/send", "", 1).strip()
+                )
+            else:
+                await bot.send_message(
+                    chat_id,
+                    message.text.replace("/send", "", 1).strip()
+                )
         except:
             SUBSCRIBERS.discard(chat_id)
 
 # ================= RUN =================
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    print("🚀 Anstore bot started")
+    try:
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()
+        print("🛑 Anstore bot stopped")
 
 if __name__ == "__main__":
     asyncio.run(main())
