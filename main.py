@@ -24,7 +24,7 @@ if not TOKEN:
 # 👇 АДМІНИ (МОЖНА ДОДАВАТИ ЩЕ)
 ADMIN_IDS = {1488727512, 568179276}
 
-SHEETS_URL = "https://script.google.com/macros/s/AKfycbzNnZaRw3U99t_jkZibiXBs_Uty3GI1H9-n9HBK3qK0j98N1yWfgSN_NE5rvCY5Qcei/exec"
+SHEETS_URL = "https://script.google.com/macros/s/AKfycbz5oHAJVvLlg7KjeplVMVQQ_ApGzpHNbwinOi2l9ifmMcEFHg3M81Xc_zAzSjmZGs6I/exec"
 CHANNEL_URL = "https://t.me/anstore_st"
 
 bot = Bot(token=TOKEN)
