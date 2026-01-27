@@ -208,7 +208,10 @@ async def fallback(message: Message):
 
 # ================= RUN =================
 async def main():
-    await dp.start_polling(bot)
+    await dp.start_polling(
+        bot,
+        allowed_updates=["message", "channel_post"]
+    )
 
 if __name__ == "__main__":
     asyncio.run(main())
