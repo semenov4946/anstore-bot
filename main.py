@@ -38,7 +38,7 @@ class Register(StatesGroup):
     last = State()
     phone = State()
 
-# ================= HELPERS =================
+# ================= LEVELS =================
 LEVELS = [
     ("Bronze", 0, 5),
     ("Silver", 10000, 7),
@@ -58,13 +58,6 @@ def get_level(points: int):
             break
 
     return current, next_level
-
-def progress_bar(points: int, start: int, end: int, size=10):
-    if end is None:
-        return "██████████"
-    filled = int((points - start) / (end - start) * size)
-    filled = max(0, min(size, filled))
-    return "█" * filled + "░" * (size - filled)
 
 # ================= MENU =================
 def main_menu():
@@ -102,8 +95,7 @@ async def save_user(payload: dict):
 async def start_handler(message: Message):
     SUBSCRIBERS.add(message.chat.id)
     await message.answer(
-        "🍏 **Anstore | Apple сервіс та техніка**\n\n"
-        "Оберіть розділ 👇",
+        "Anstore | Apple сервіс та техніка\n\nОберіть розділ 👇",
         reply_markup=main_menu()
     )
 
@@ -112,24 +104,24 @@ async def start_handler(message: Message):
 async def iphones(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(
-            text="📢 Перейти в канал",
+            text="Перейти в канал",
             url=CHANNEL_URL
         )]]
     )
-    await message.answer("📱 Актуальна наявність iPhone 👇", reply_markup=kb)
+    await message.answer("Актуальна наявність iPhone 👇", reply_markup=kb)
 
 # ================= PROMOTIONS =================
 @dp.message(lambda m: m.text == "🎁 Акції")
 async def promotions(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(
-            text="📢 Відкрити канал",
+            text="Відкрити канал",
             url=CHANNEL_URL
         )]]
     )
     await message.answer(
-        "🎁 **Актуальні акції Anstore** 👇\n\n"
-        "ℹ️ У каналі натисніть на **#акція**",
+        "Актуальні акції Anstore 👇\n\n"
+        "У каналі натисніть на #акція",
         reply_markup=kb
     )
 
@@ -152,26 +144,22 @@ async def loyalty(message: Message, state: FSMContext):
     points = int(data.get("points", 0))
     current, next_level = get_level(points)
 
+    text = (
+        "Ваша карта лояльності ANSTORE\n\n"
+        f"Клієнт: {data['first_name']} {data['last_name']}\n"
+        f"Телефон: {data['phone']}\n\n"
+        f"Рівень: {current[0]}\n"
+        f"Знижка: {current[2]}%\n"
+        f"Бали: {points} грн\n"
+    )
+
     if next_level:
         need = next_level[1] - points
-        bar = progress_bar(points, current[1], next_level[1])
-        progress_text = (
-            f"\n📊 Прогрес: {bar}\n"
-            f"➡️ До **{next_level[0]}** залишилось **{need} грн**"
-        )
+        text += f"\nДо рівня {next_level[0]} залишилось: {need} грн"
     else:
-        progress_text = "\n🏆 Максимальний рівень досягнуто!"
+        text += "\nМаксимальний рівень досягнуто"
 
-    await message.answer(
-        "💳 **Ваша карта лояльності ANSTORE**\n\n"
-        f"👤 {data['first_name']} {data['last_name']}\n"
-        f"📞 {data['phone']}\n\n"
-        f"⭐ Статус: **{current[0]}**\n"
-        f"💰 Знижка: **{current[2]}%**\n"
-        f"🎯 Бали: **{points}**"
-        f"{progress_text}",
-        reply_markup=main_menu()
-    )
+    await message.answer(text, reply_markup=main_menu())
 
 # ================= REGISTRATION =================
 @dp.message(Register.first)
@@ -184,7 +172,7 @@ async def reg_first(message: Message, state: FSMContext):
 async def reg_last(message: Message, state: FSMContext):
     await state.update_data(last=message.text.strip())
     kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="📞 Поділитись номером", request_contact=True)]],
+        keyboard=[[KeyboardButton(text="Поділитись номером", request_contact=True)]],
         resize_keyboard=True,
         one_time_keyboard=True
     )
@@ -201,24 +189,23 @@ async def reg_phone(message: Message, state: FSMContext):
         "phone": message.contact.phone_number
     })
     await state.clear()
-    await message.answer("✅ Карту лояльності створено!", reply_markup=main_menu())
+    await message.answer("Карту лояльності створено", reply_markup=main_menu())
 
-# ================= SERVICE CENTER =================
+# ================= SERVICE =================
 @dp.message(lambda m: m.text == "🛠 Сервісний центр")
 async def service_center(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(
-            text="📞 Записатись до сервісу",
+            text="Записатись до сервісу",
             url=MANAGER_TG
         )]]
     )
     await message.answer(
-        "🛠 **Сервісний центр Anstore**\n\n"
-        "• Ремонт iPhone\n"
-        "• Заміна дисплею / скла\n"
-        "• Акумулятори\n"
-        "• Діагностика\n\n"
-        "👇 Натисніть кнопку для запису",
+        "Сервісний центр Anstore\n\n"
+        "Ремонт iPhone\n"
+        "Заміна дисплею та акумулятора\n"
+        "Діагностика\n\n"
+        "Натисніть кнопку для запису",
         reply_markup=kb
     )
 
@@ -226,9 +213,9 @@ async def service_center(message: Message):
 @dp.message(lambda m: m.text == "📞 Звʼязок з менеджером")
 async def contact(message: Message):
     await message.answer(
-        "📞 **Звʼязок з менеджером**\n\n"
-        "💬 Telegram:\nhttps://t.me/anstore_support\n\n"
-        "📞 Телефон:\n+380634739011"
+        "Звʼязок з менеджером\n\n"
+        "Telegram: https://t.me/anstore_support\n"
+        "Телефон: +380634739011"
     )
 
 # ================= ADMIN SEND =================
