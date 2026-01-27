@@ -23,6 +23,7 @@ if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbzNnZaRw3U99t_jkZibiXBs_Uty3GI1H9-n9HBK3qK0j98N1yWfgSN_NE5rvCY5Qcei/exec"
+CHANNEL_ID = "@anstore_st"  # ВАЖЛИВО: username каналу
 CHANNEL_URL = "https://t.me/anstore_st"
 
 bot = Bot(token=TOKEN)
@@ -74,8 +75,8 @@ async def start_handler(message: Message):
     SUBSCRIBERS.add(message.chat.id)
 
     await message.answer(
-        "🍏 Anstore | Apple сервіс та техніка\n\n"
-        "Ви підписані на оновлення з каналу ✅\n"
+        "🍏 **Anstore | Apple сервіс та техніка**\n\n"
+        "Ви підписані на акції та оновлення ✅\n"
         "Оберіть розділ 👇",
         reply_markup=main_menu()
     )
@@ -105,8 +106,8 @@ async def promotions(message: Message):
         ]
     )
     await message.answer(
-        "🎁 Актуальні акції Anstore 👇\n\n"
-        "ℹ️ У каналі натисніть на #акція, щоб побачити всі пропозиції.",
+        "🎁 **Актуальні акції Anstore** 👇\n\n"
+        "ℹ️ У каналі натисніть на **#акція**, щоб побачити всі пропозиції.",
         reply_markup=kb
     )
 
@@ -123,7 +124,7 @@ async def loyalty(message: Message, state: FSMContext):
 
     if data.get("found"):
         await message.answer(
-            "💳 Ваша карта лояльності ANSTORE\n\n"
+            "💳 **Ваша карта лояльності ANSTORE**\n\n"
             f"👤 {data['first_name']} {data['last_name']}\n"
             f"📞 {data['phone']}\n"
             f"⭐ Статус: {data.get('status','Silver')}\n"
@@ -167,27 +168,34 @@ async def reg_phone(message: Message, state: FSMContext):
 @dp.message(lambda m: m.text == "🛠 Сервісний центр")
 async def service(message: Message):
     await message.answer(
-        "🛠 Сервісний центр Anstore\n\n"
+        "🛠 **Сервісний центр Anstore**\n\n"
         "• Ремонт iPhone\n"
         "• Заміна скла / дисплею\n"
-        "• Акумулятори\n\n"
-        "Деталі — у менеджера."
+        "• Заміна акумуляторів\n\n"
+        "📞 Деталі — у менеджера."
     )
 
 # ================= CONTACT =================
 @dp.message(lambda m: m.text == "📞 Зв'язок з менеджером")
 async def contact(message: Message):
     await message.answer(
-        "📞 Звʼязок з менеджером Anstore\n\n"
+        "📞 **Звʼязок з менеджером Anstore**\n\n"
         "💬 Telegram:\nhttps://t.me/anstore_support\n\n"
         "📞 Телефон:\n+380634739011\n\n"
         "📍 Адреса магазину:\n"
         "https://maps.app.goo.gl/GXY9KfhsVBJyxykv5"
     )
 
-# ================= CHANNEL AUTO POSTS (aiogram 3 FIX) =================
-@dp.message(lambda m: m.chat.type == ChatType.CHANNEL)
+# ================= CHANNEL AUTO POSTS =================
+@dp.channel_post()
 async def channel_post_handler(message: Message):
+    if message.chat.username != CHANNEL_ID.replace("@", ""):
+        return
+
+    # Тільки акції
+    if message.text and "#акція" not in message.text.lower():
+        return
+
     for chat_id in list(SUBSCRIBERS):
         try:
             await bot.forward_message(
@@ -208,7 +216,7 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(
         bot,
-        allowed_updates=["message"]
+        allowed_updates=["message", "channel_post"]
     )
 
 if __name__ == "__main__":
