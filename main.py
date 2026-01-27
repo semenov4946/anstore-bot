@@ -171,11 +171,32 @@ async def reg_phone(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("✅ Карту лояльності створено!", reply_markup=main_menu())
 
+# ================= SERVICE CENTER (FIXED) =================
+@dp.message(lambda m: m.text == "🛠 Сервісний центр")
+async def service_center(message: Message):
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(
+                text="📞 Звʼязатись з менеджером",
+                url="https://t.me/anstore_support"
+            )]
+        ]
+    )
+    await message.answer(
+        "🛠 **Сервісний центр Anstore**\n\n"
+        "• Ремонт iPhone\n"
+        "• Заміна дисплею / скла\n"
+        "• Заміна акумулятора\n"
+        "• Діагностика\n\n"
+        "👇 Натисніть кнопку, щоб записатись",
+        reply_markup=kb
+    )
+
 # ================= CONTACT =================
 @dp.message(lambda m: m.text == "📞 Звʼязок з менеджером")
 async def contact(message: Message):
     await message.answer(
-        "📞 Звʼязок з менеджером\n\n"
+        "📞 **Звʼязок з менеджером**\n\n"
         "💬 Telegram: https://t.me/anstore_support\n"
         "📞 Телефон: +380634739011\n"
         "📍 Адреса: https://maps.app.goo.gl/GXY9KfhsVBJyxykv5"
@@ -187,7 +208,6 @@ async def admin_send(message: Message):
     if message.from_user.id not in ADMIN_IDS:
         return
 
-    # Фото + текст
     if message.photo:
         caption = (message.caption or "").replace("/send", "", 1).strip()
         for chat_id in list(SUBSCRIBERS):
@@ -197,7 +217,6 @@ async def admin_send(message: Message):
                 SUBSCRIBERS.discard(chat_id)
         return
 
-    # Тільки текст
     text = message.text.replace("/send", "", 1).strip()
     if not text:
         return
