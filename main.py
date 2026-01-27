@@ -1,24 +1,20 @@
 import asyncio
 import os
-import json
-import aiohttp
 
 from aiogram import Bot, Dispatcher
 from aiogram.types import (
     Message,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
     InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    CallbackQuery
+    InlineKeyboardButton
 )
 from aiogram.filters import Command
-from aiogram.fsm.storage.memory import MemoryStorage
 
 # ================= CONFIG =================
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
-
-SHEETS_URL = "https://script.google.com/macros/s/AKfycbzNnZaRw3U99t_jkZibiXBs_Uty3GI1H9-n9HBK3qK0j98N1yWfgSN_NE5rvCY5Qcei/exec"
 
 CHANNEL_URL = "https://t.me/anstore_st"
 MAPS_URL = "https://maps.app.goo.gl/GXY9KfhsVBJyxykv5?g_st=ic"
@@ -26,93 +22,69 @@ MANAGER_TG = "https://t.me/anstore_support"
 PHONE_URL = "tel:+380634739011"
 
 bot = Bot(token=TOKEN)
-dp = Dispatcher(storage=MemoryStorage())
+dp = Dispatcher()
 
-# ================= MAIN MENU =================
+# ================= MENU =================
 def main_menu():
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📱 Айфони в наявності", url=CHANNEL_URL)],
-            [InlineKeyboardButton(text="🎁 Акції", callback_data="promo")],
-            [InlineKeyboardButton(text="💳 Моя карта лояльності", callback_data="loyalty")],
-            [InlineKeyboardButton(text="📞 Звʼязок з менеджером", callback_data="contact")],
-        ]
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📱 Айфони в наявності")],
+            [KeyboardButton(text="🎁 Акції")],
+            [KeyboardButton(text="📞 Зв'язок з менеджером")],
+        ],
+        resize_keyboard=True
     )
-
-# ================= HTTP =================
-async def get_user(user_id: int):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            SHEETS_URL,
-            params={"user_id": str(user_id)},
-            timeout=aiohttp.ClientTimeout(total=10)
-        ) as resp:
-            return json.loads(await resp.text())
 
 # ================= START =================
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     await message.answer(
-        "🍏 **Anstore** — Apple сервіс та техніка\n\n"
-        "Оберіть розділ 👇",
+        "🍏 **Anstore** | Apple сервіс та техніка\n\n"
+        "Оберіть дію 👇",
         reply_markup=main_menu()
     )
 
-# ================= PROMO =================
-@dp.callback_query(lambda c: c.data == "promo")
-async def promo(cb: CallbackQuery):
-    await cb.message.answer(
-        "🎁 **Актуальні акції** 👇\n\n"
-        "У каналі натисніть на **#акція**, щоб побачити всі пропозиції.",
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="📢 Відкрити канал", url=CHANNEL_URL)]
-            ]
-        )
+# ================= IPHONES =================
+@dp.message(lambda m: m.text == "📱 Айфони в наявності")
+async def iphones(message: Message):
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📢 Перейти в канал", url=CHANNEL_URL)]
+        ]
     )
-    await cb.answer()
+    await message.answer(
+        "📱 Актуальна наявність iPhone 👇",
+        reply_markup=kb
+    )
 
-# ================= LOYALTY =================
-@dp.callback_query(lambda c: c.data == "loyalty")
-async def loyalty(cb: CallbackQuery):
-    user_id = cb.from_user.id
-
-    try:
-        data = await get_user(user_id)
-    except Exception:
-        data = {"found": False}
-
-    if data.get("found"):
-        text = (
-            "💳 **Ваша карта лояльності ANSTORE**\n\n"
-            f"👤 {data['first_name']} {data['last_name']}\n"
-            f"📞 {data['phone']}\n"
-            f"⭐ Статус: {data.get('status','Silver')}\n"
-            f"💰 Знижка: {data.get('discount',5)}%"
-        )
-    else:
-        text = (
-            "ℹ️ Ви ще не зареєстровані в програмі лояльності.\n\n"
-            "Зверніться до менеджера — він оформить карту."
-        )
-
-    await cb.message.answer(text, reply_markup=main_menu())
-    await cb.answer()
+# ================= PROMOTIONS =================
+@dp.message(lambda m: m.text == "🎁 Акції")
+async def promotions(message: Message):
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📢 Відкрити канал", url=CHANNEL_URL)]
+        ]
+    )
+    await message.answer(
+        "🎁 Актуальні акції Anstore 👇\n\n"
+        "У каналі натисніть на #акція",
+        reply_markup=kb
+    )
 
 # ================= CONTACT =================
-@dp.callback_query(lambda c: c.data == "contact")
-async def contact(cb: CallbackQuery):
-    await cb.message.answer(
-        "📞 **Звʼязок з менеджером Anstore** 👇",
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="💬 Написати в Telegram", url=MANAGER_TG)],
-                [InlineKeyboardButton(text="📞 Подзвонити", url=PHONE_URL)],
-                [InlineKeyboardButton(text="📍 Адреса магазину", url=MAPS_URL)],
-            ]
-        )
+@dp.message(lambda m: m.text == "📞 Зв'язок з менеджером")
+async def contact(message: Message):
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💬 Написати в Telegram", url=MANAGER_TG)],
+            [InlineKeyboardButton(text="📞 Подзвонити", url=PHONE_URL)],
+            [InlineKeyboardButton(text="📍 Адреса магазину", url=MAPS_URL)],
+        ]
     )
-    await cb.answer()
+    await message.answer(
+        "📞 Звʼязок з менеджером 👇",
+        reply_markup=kb
+    )
 
 # ================= RUN =================
 async def main():
