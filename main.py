@@ -21,7 +21,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
-ADMIN_ID = 1488727512, 568179276  # 👈 ТИ АДМІН
+ADMIN_IDS = {1488727512, 568179276}  # 👈 АДМІНИ
 
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbzNnZaRw3U99t_jkZibiXBs_Uty3GI1H9-n9HBK3qK0j98N1yWfgSN_NE5rvCY5Qcei/exec"
 CHANNEL_URL = "https://t.me/anstore_st"
@@ -75,7 +75,7 @@ async def start_handler(message: Message):
     SUBSCRIBERS.add(message.chat.id)
 
     await message.answer(
-        "🍏 Anstore | Apple сервіс та техніка\n\n"
+        "🍏 **Anstore | Apple сервіс та техніка**\n\n"
         "Оберіть розділ 👇",
         reply_markup=main_menu()
     )
@@ -123,7 +123,7 @@ async def loyalty(message: Message, state: FSMContext):
 
     if data.get("found"):
         await message.answer(
-            "💳 Ваша карта лояльності ANSTORE\n\n"
+            "💳 **Ваша карта лояльності ANSTORE**\n\n"
             f"👤 {data['first_name']} {data['last_name']}\n"
             f"📞 {data['phone']}\n"
             f"⭐ Статус: {data.get('status','Silver')}\n"
@@ -167,7 +167,7 @@ async def reg_phone(message: Message, state: FSMContext):
 @dp.message(lambda m: m.text == "🛠 Сервісний центр")
 async def service(message: Message):
     await message.answer(
-        "🛠 Сервісний центр Anstore\n\n"
+        "🛠 **Сервісний центр Anstore**\n\n"
         "• Ремонт iPhone\n"
         "• Заміна скла / дисплею\n"
         "• Заміна акумуляторів\n\n"
@@ -178,7 +178,7 @@ async def service(message: Message):
 @dp.message(lambda m: m.text == "📞 Зв'язок з менеджером")
 async def contact(message: Message):
     await message.answer(
-        "📞 Звʼязок з менеджером Anstore\n\n"
+        "📞 **Звʼязок з менеджером Anstore**\n\n"
         "💬 Telegram:\nhttps://t.me/anstore_support\n\n"
         "📞 Телефон:\n+380634739011\n\n"
         "📍 Адреса магазину:\n"
@@ -188,12 +188,13 @@ async def contact(message: Message):
 # ================= ADMIN BROADCAST =================
 @dp.message(Command("send"))
 async def admin_send(message: Message):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
+        await message.answer("⛔ У вас немає доступу")
         return
 
-    text = message.text.replace("/send", "").strip()
+    text = message.text.replace("/send", "", 1).strip()
     if not text:
-        await message.answer("❗ Напишіть текст після /send")
+        await message.answer("❗ Використання:\n/send текст повідомлення")
         return
 
     sent = 0
