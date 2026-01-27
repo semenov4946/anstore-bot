@@ -12,6 +12,7 @@ from aiogram.types import (
     InlineKeyboardButton
 )
 from aiogram.filters import Command
+from aiogram.enums import ChatType
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -184,8 +185,8 @@ async def contact(message: Message):
         "https://maps.app.goo.gl/GXY9KfhsVBJyxykv5"
     )
 
-# ================= CHANNEL AUTO POSTS =================
-@dp.channel_post()
+# ================= CHANNEL AUTO POSTS (aiogram 3 FIX) =================
+@dp.message(lambda m: m.chat.type == ChatType.CHANNEL)
 async def channel_post_handler(message: Message):
     for chat_id in list(SUBSCRIBERS):
         try:
@@ -204,12 +205,10 @@ async def fallback(message: Message):
 
 # ================= RUN =================
 async def main():
-    # 🔴 КРИТИЧНО: скидаємо webhook
     await bot.delete_webhook(drop_pending_updates=True)
-
     await dp.start_polling(
         bot,
-        allowed_updates=["message", "channel_post"]
+        allowed_updates=["message"]
     )
 
 if __name__ == "__main__":
