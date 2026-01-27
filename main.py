@@ -68,8 +68,7 @@ async def save_user(payload: dict):
             },
             timeout=aiohttp.ClientTimeout(total=10)
         ) as resp:
-            text = await resp.text()
-            print("POST response:", text)
+            print("POST response:", await resp.text())
 
 # ================= START =================
 @dp.message(Command("start"))
@@ -90,7 +89,27 @@ async def iphones(message: Message):
             )]
         ]
     )
-    await message.answer("📱 Актуальна наявність iPhone 👇", reply_markup=kb)
+    await message.answer(
+        "📱 Актуальна наявність iPhone 👇",
+        reply_markup=kb
+    )
+
+# ================= PROMOTIONS =================
+@dp.message(lambda m: m.text == "🎁 Акції")
+async def promotions(message: Message):
+    kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(
+                text="🔥 Переглянути актуальні акції",
+                url="https://t.me/anstore_st"
+            )]
+        ]
+    )
+    await message.answer(
+        "🎁 Усі актуальні акції Anstore 👇\n"
+        "Знижки, бонуси та спецпропозиції",
+        reply_markup=kb
+    )
 
 # ================= LOYALTY =================
 @dp.message(lambda m: m.text == "💳 Моя карта лояльності")
@@ -153,7 +172,7 @@ async def reg_phone(message: Message, state: FSMContext):
     )
 
 # ================= OTHER =================
-@dp.message(lambda m: m.text in ["🛠 Сервісний центр", "🎁 Акції", "📞 Зв'язок з менеджером"])
+@dp.message(lambda m: m.text in ["🛠 Сервісний центр", "📞 Зв'язок з менеджером"])
 async def other(message: Message):
     await message.answer("Розділ у розробці 🛠")
 
