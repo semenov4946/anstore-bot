@@ -21,10 +21,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
-# Google Apps Script Web App (/exec)
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbzNnZaRw3U99t_jkZibiXBs_Uty3GI1H9-n9HBK3qK0j98N1yWfgSN_NE5rvCY5Qcei/exec"
-
-# Telegram channel
 CHANNEL_URL = "https://t.me/anstore_st"
 
 bot = Bot(token=TOKEN)
@@ -60,24 +57,18 @@ async def get_user(user_id: int):
             return json.loads(await resp.text())
 
 async def save_user(payload: dict):
-    body = json.dumps(payload).encode("utf-8")
     async with aiohttp.ClientSession() as session:
-        async with session.post(
+        await session.post(
             SHEETS_URL,
-            data=body,
-            headers={
-                "Content-Type": "application/json",
-                "Content-Length": str(len(body))
-            },
+            json=payload,
             timeout=aiohttp.ClientTimeout(total=10)
-        ) as resp:
-            print("POST response:", await resp.text())
+        )
 
 # ================= START =================
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     await message.answer(
-        "Вітаємо в Anstore | Apple сервіс та техніка 🍏\n\n"
+        "🍏 Anstore | Apple сервіс та техніка\n\n"
         "Оберіть потрібний розділ 👇",
         reply_markup=main_menu()
     )
@@ -87,10 +78,7 @@ async def start_handler(message: Message):
 async def iphones(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(
-                text="📢 Перейти в канал з наявністю",
-                url=CHANNEL_URL
-            )]
+            [InlineKeyboardButton(text="📢 Перейти в канал з наявністю", url=CHANNEL_URL)]
         ]
     )
     await message.answer(
@@ -98,21 +86,17 @@ async def iphones(message: Message):
         reply_markup=kb
     )
 
-# ================= PROMOTIONS (VARIANT 2) =================
+# ================= PROMOTIONS =================
 @dp.message(lambda m: m.text == "🎁 Акції")
 async def promotions(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(
-                text="📢 Відкрити канал",
-                url=CHANNEL_URL
-            )]
+            [InlineKeyboardButton(text="📢 Відкрити канал", url=CHANNEL_URL)]
         ]
     )
     await message.answer(
         "🎁 Актуальні акції Anstore 👇\n\n"
-        "ℹ️ У каналі **натисніть на хештег #акція**, "
-        "щоб побачити всі діючі пропозиції.",
+        "ℹ️ У каналі натисніть на #акція, щоб побачити всі пропозиції.",
         reply_markup=kb
     )
 
@@ -160,26 +144,40 @@ async def reg_last(message: Message, state: FSMContext):
 @dp.message(Register.phone)
 async def reg_phone(message: Message, state: FSMContext):
     data = await state.get_data()
-
     await save_user({
         "user_id": str(message.from_user.id),
         "first_name": data["first"],
         "last_name": data["last"],
         "phone": message.contact.phone_number
     })
-
     await state.clear()
+    await message.answer("✅ Карту лояльності створено!", reply_markup=main_menu())
+
+# ================= SERVICE =================
+@dp.message(lambda m: m.text == "🛠 Сервісний центр")
+async def service(message: Message):
     await message.answer(
-        "✅ Карту лояльності створено!\n"
-        "📌 Знижка тепер привʼязана до вашого Telegram",
-        reply_markup=main_menu()
+        "🛠 Сервісний центр Anstore\n\n"
+        "• Ремонт iPhone\n"
+        "• Заміна скла / дисплею\n"
+        "• Акумулятори\n\n"
+        "Деталі — у менеджера."
     )
 
-# ================= OTHER =================
-@dp.message(lambda m: m.text in ["🛠 Сервісний центр", "📞 Зв'язок з менеджером"])
-async def other(message: Message):
-    await message.answer("Розділ у розробці 🛠")
+# ================= CONTACT (SIMPLE & 100% WORKING) =================
+@dp.message(lambda m: m.text == "📞 Зв'язок з менеджером")
+async def contact(message: Message):
+    await message.answer(
+        "📞 Звʼязок з менеджером Anstore\n\n"
+        "💬 Telegram:\n"
+        "https://t.me/anstore_support\n\n"
+        "📞 Телефон:\n"
+        "+380634739011\n\n"
+        "📍 Адреса магазину:\n"
+        "https://maps.app.goo.gl/GXY9KfhsVBJyxykv5"
+    )
 
+# ================= FALLBACK =================
 @dp.message()
 async def fallback(message: Message):
     await message.answer("Оберіть пункт з меню 👇", reply_markup=main_menu())
