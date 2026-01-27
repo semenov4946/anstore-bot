@@ -21,7 +21,7 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
-ADMIN_ID = 1488727512  # 👈 ТИ АДМІН
+ADMIN_ID = 1488727512, 568179276  # 👈 ТИ АДМІН
 
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbzNnZaRw3U99t_jkZibiXBs_Uty3GI1H9-n9HBK3qK0j98N1yWfgSN_NE5rvCY5Qcei/exec"
 CHANNEL_URL = "https://t.me/anstore_st"
