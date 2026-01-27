@@ -23,6 +23,9 @@ if not TOKEN:
 
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbzNnZaRw3U99t_jkZibiXBs_Uty3GI1H9-n9HBK3qK0j98N1yWfgSN_NE5rvCY5Qcei/exec"
 
+PROMO_CHANNEL = "https://t.me/anstore_st?hashtag=акція"
+IPHONES_CHANNEL = "https://t.me/anstore_st"
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
@@ -37,9 +40,9 @@ def main_menu():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="📱 Айфони в наявності")],
-            [KeyboardButton(text="🛠 Сервісний центр")],
             [KeyboardButton(text="🎁 Акції")],
             [KeyboardButton(text="💳 Моя карта лояльності")],
+            [KeyboardButton(text="🛠 Сервісний центр")],
             [KeyboardButton(text="📞 Зв'язок з менеджером")],
         ],
         resize_keyboard=True
@@ -74,7 +77,8 @@ async def save_user(payload: dict):
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     await message.answer(
-        "Вітаємо в Anstore | Apple сервіс та техніка 🍏",
+        "Вітаємо в **Anstore** | Apple сервіс та техніка 🍏\n\n"
+        "Оберіть потрібний розділ 👇",
         reply_markup=main_menu()
     )
 
@@ -85,12 +89,12 @@ async def iphones(message: Message):
         inline_keyboard=[
             [InlineKeyboardButton(
                 text="📢 Перейти в канал з наявністю",
-                url="https://t.me/anstore_st"
+                url=IPHONES_CHANNEL
             )]
         ]
     )
     await message.answer(
-        "📱 Актуальна наявність iPhone 👇",
+        "📱 Актуальна наявність iPhone з фото та цінами 👇",
         reply_markup=kb
     )
 
@@ -101,13 +105,13 @@ async def promotions(message: Message):
         inline_keyboard=[
             [InlineKeyboardButton(
                 text="🔥 Переглянути актуальні акції",
-                url="https://t.me/anstore_st"
+                url=PROMO_CHANNEL
             )]
         ]
     )
     await message.answer(
-        "🎁 Усі актуальні акції Anstore 👇\n"
-        "Знижки, бонуси та спецпропозиції",
+        "🎁 Актуальні акції Anstore 👇\n"
+        "Натисніть кнопку, щоб побачити всі пропозиції з #акція",
         reply_markup=kb
     )
 
@@ -124,7 +128,7 @@ async def loyalty(message: Message, state: FSMContext):
 
     if data.get("found"):
         await message.answer(
-            "💳 Ваша карта лояльності ANSTORE\n\n"
+            "💳 **Ваша карта лояльності ANSTORE**\n\n"
             f"👤 {data['first_name']} {data['last_name']}\n"
             f"📞 {data['phone']}\n"
             f"⭐ Статус: {data.get('status','Silver')}\n"
