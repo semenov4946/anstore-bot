@@ -21,10 +21,11 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
+# Google Apps Script Web App (/exec)
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbzNnZaRw3U99t_jkZibiXBs_Uty3GI1H9-n9HBK3qK0j98N1yWfgSN_NE5rvCY5Qcei/exec"
 
-PROMO_CHANNEL = "https://t.me/anstore_st?hashtag=акція"
-IPHONES_CHANNEL = "https://t.me/anstore_st"
+# Telegram channel
+CHANNEL_URL = "https://t.me/anstore_st"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -60,7 +61,6 @@ async def get_user(user_id: int):
 
 async def save_user(payload: dict):
     body = json.dumps(payload).encode("utf-8")
-
     async with aiohttp.ClientSession() as session:
         async with session.post(
             SHEETS_URL,
@@ -77,7 +77,7 @@ async def save_user(payload: dict):
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     await message.answer(
-        "Вітаємо в **Anstore** | Apple сервіс та техніка 🍏\n\n"
+        "Вітаємо в Anstore | Apple сервіс та техніка 🍏\n\n"
         "Оберіть потрібний розділ 👇",
         reply_markup=main_menu()
     )
@@ -89,7 +89,7 @@ async def iphones(message: Message):
         inline_keyboard=[
             [InlineKeyboardButton(
                 text="📢 Перейти в канал з наявністю",
-                url=IPHONES_CHANNEL
+                url=CHANNEL_URL
             )]
         ]
     )
@@ -98,20 +98,21 @@ async def iphones(message: Message):
         reply_markup=kb
     )
 
-# ================= PROMOTIONS =================
+# ================= PROMOTIONS (VARIANT 2) =================
 @dp.message(lambda m: m.text == "🎁 Акції")
 async def promotions(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(
-                text="🔥 Переглянути актуальні акції",
-                url=PROMO_CHANNEL
+                text="📢 Відкрити канал",
+                url=CHANNEL_URL
             )]
         ]
     )
     await message.answer(
-        "🎁 Актуальні акції Anstore 👇\n"
-        "Натисніть кнопку, щоб побачити всі пропозиції з #акція",
+        "🎁 Актуальні акції Anstore 👇\n\n"
+        "ℹ️ У каналі **натисніть на хештег #акція**, "
+        "щоб побачити всі діючі пропозиції.",
         reply_markup=kb
     )
 
@@ -128,7 +129,7 @@ async def loyalty(message: Message, state: FSMContext):
 
     if data.get("found"):
         await message.answer(
-            "💳 **Ваша карта лояльності ANSTORE**\n\n"
+            "💳 Ваша карта лояльності ANSTORE\n\n"
             f"👤 {data['first_name']} {data['last_name']}\n"
             f"📞 {data['phone']}\n"
             f"⭐ Статус: {data.get('status','Silver')}\n"
@@ -168,7 +169,6 @@ async def reg_phone(message: Message, state: FSMContext):
     })
 
     await state.clear()
-
     await message.answer(
         "✅ Карту лояльності створено!\n"
         "📌 Знижка тепер привʼязана до вашого Telegram",
