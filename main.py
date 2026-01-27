@@ -12,7 +12,6 @@ from aiogram.types import (
     InlineKeyboardButton
 )
 from aiogram.filters import Command
-from aiogram.enums import ChatType
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -22,8 +21,9 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
+ADMIN_ID = 1488727512  # 👈 ТИ АДМІН
+
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbzNnZaRw3U99t_jkZibiXBs_Uty3GI1H9-n9HBK3qK0j98N1yWfgSN_NE5rvCY5Qcei/exec"
-CHANNEL_ID = "@anstore_st"  # ВАЖЛИВО: username каналу
 CHANNEL_URL = "https://t.me/anstore_st"
 
 bot = Bot(token=TOKEN)
@@ -75,8 +75,7 @@ async def start_handler(message: Message):
     SUBSCRIBERS.add(message.chat.id)
 
     await message.answer(
-        "🍏 **Anstore | Apple сервіс та техніка**\n\n"
-        "Ви підписані на акції та оновлення ✅\n"
+        "🍏 Anstore | Apple сервіс та техніка\n\n"
         "Оберіть розділ 👇",
         reply_markup=main_menu()
     )
@@ -106,8 +105,8 @@ async def promotions(message: Message):
         ]
     )
     await message.answer(
-        "🎁 **Актуальні акції Anstore** 👇\n\n"
-        "ℹ️ У каналі натисніть на **#акція**, щоб побачити всі пропозиції.",
+        "🎁 Актуальні акції Anstore 👇\n\n"
+        "ℹ️ У каналі натисніть на #акція, щоб побачити всі пропозиції.",
         reply_markup=kb
     )
 
@@ -124,7 +123,7 @@ async def loyalty(message: Message, state: FSMContext):
 
     if data.get("found"):
         await message.answer(
-            "💳 **Ваша карта лояльності ANSTORE**\n\n"
+            "💳 Ваша карта лояльності ANSTORE\n\n"
             f"👤 {data['first_name']} {data['last_name']}\n"
             f"📞 {data['phone']}\n"
             f"⭐ Статус: {data.get('status','Silver')}\n"
@@ -168,7 +167,7 @@ async def reg_phone(message: Message, state: FSMContext):
 @dp.message(lambda m: m.text == "🛠 Сервісний центр")
 async def service(message: Message):
     await message.answer(
-        "🛠 **Сервісний центр Anstore**\n\n"
+        "🛠 Сервісний центр Anstore\n\n"
         "• Ремонт iPhone\n"
         "• Заміна скла / дисплею\n"
         "• Заміна акумуляторів\n\n"
@@ -179,32 +178,33 @@ async def service(message: Message):
 @dp.message(lambda m: m.text == "📞 Зв'язок з менеджером")
 async def contact(message: Message):
     await message.answer(
-        "📞 **Звʼязок з менеджером Anstore**\n\n"
+        "📞 Звʼязок з менеджером Anstore\n\n"
         "💬 Telegram:\nhttps://t.me/anstore_support\n\n"
         "📞 Телефон:\n+380634739011\n\n"
         "📍 Адреса магазину:\n"
         "https://maps.app.goo.gl/GXY9KfhsVBJyxykv5"
     )
 
-# ================= CHANNEL AUTO POSTS =================
-@dp.channel_post()
-async def channel_post_handler(message: Message):
-    if message.chat.username != CHANNEL_ID.replace("@", ""):
+# ================= ADMIN BROADCAST =================
+@dp.message(Command("send"))
+async def admin_send(message: Message):
+    if message.from_user.id != ADMIN_ID:
         return
 
-    # Тільки акції
-    if message.text and "#акція" not in message.text.lower():
+    text = message.text.replace("/send", "").strip()
+    if not text:
+        await message.answer("❗ Напишіть текст після /send")
         return
 
+    sent = 0
     for chat_id in list(SUBSCRIBERS):
         try:
-            await bot.forward_message(
-                chat_id=chat_id,
-                from_chat_id=message.chat.id,
-                message_id=message.message_id
-            )
+            await bot.send_message(chat_id, text)
+            sent += 1
         except:
             SUBSCRIBERS.discard(chat_id)
+
+    await message.answer(f"✅ Розіслано: {sent} клієнтам")
 
 # ================= FALLBACK =================
 @dp.message()
@@ -214,10 +214,7 @@ async def fallback(message: Message):
 # ================= RUN =================
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(
-        bot,
-        allowed_updates=["message", "channel_post"]
-    )
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
