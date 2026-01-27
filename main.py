@@ -25,6 +25,7 @@ ADMIN_IDS = {1488727512, 568179276}
 
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbz5oHAJVvLlg7KjeplVMVQQ_ApGzpHNbwinOi2l9ifmMcEFHg3M81Xc_zAzSjmZGs6I/exec"
 CHANNEL_URL = "https://t.me/anstore_st"
+MANAGER_TG = "https://t.me/anstore_support"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
@@ -38,14 +39,32 @@ class Register(StatesGroup):
     phone = State()
 
 # ================= HELPERS =================
-def calc_status(points: int):
-    if points >= 50000:
-        return "Platinum", 15
-    if points >= 25000:
-        return "Gold", 10
-    if points >= 10000:
-        return "Silver", 7
-    return "Bronze", 5
+LEVELS = [
+    ("Bronze", 0, 5),
+    ("Silver", 10000, 7),
+    ("Gold", 25000, 10),
+    ("Platinum", 50000, 15),
+]
+
+def get_level(points: int):
+    current = LEVELS[0]
+    next_level = None
+
+    for lvl in LEVELS:
+        if points >= lvl[1]:
+            current = lvl
+        else:
+            next_level = lvl
+            break
+
+    return current, next_level
+
+def progress_bar(points: int, start: int, end: int, size=10):
+    if end is None:
+        return "██████████"
+    filled = int((points - start) / (end - start) * size)
+    filled = max(0, min(size, filled))
+    return "█" * filled + "░" * (size - filled)
 
 # ================= MENU =================
 def main_menu():
@@ -83,7 +102,7 @@ async def save_user(payload: dict):
 async def start_handler(message: Message):
     SUBSCRIBERS.add(message.chat.id)
     await message.answer(
-        "🍏 Anstore | Apple сервіс та техніка\n\n"
+        "🍏 **Anstore | Apple сервіс та техніка**\n\n"
         "Оберіть розділ 👇",
         reply_markup=main_menu()
     )
@@ -109,8 +128,8 @@ async def promotions(message: Message):
         )]]
     )
     await message.answer(
-        "🎁 Актуальні акції Anstore 👇\n\n"
-        "ℹ️ У каналі натисніть на #акція",
+        "🎁 **Актуальні акції Anstore** 👇\n\n"
+        "ℹ️ У каналі натисніть на **#акція**",
         reply_markup=kb
     )
 
@@ -122,26 +141,39 @@ async def loyalty(message: Message, state: FSMContext):
 
     try:
         data = await get_user(user_id)
-    except Exception:
+    except:
         data = {"found": False}
 
-    if data.get("found"):
-        points = int(data.get("points", 0))
-        status, discount = calc_status(points)
-
-        await message.answer(
-            "💳 Ваша карта лояльності ANSTORE\n\n"
-            f"👤 {data['first_name']} {data['last_name']}\n"
-            f"📞 {data['phone']}\n"
-            f"⭐ Статус: {status}\n"
-            f"💰 Знижка: {discount}%\n"
-            f"🎯 Бали: {points}",
-            reply_markup=main_menu()
-        )
-    else:
+    if not data.get("found"):
         await message.answer("Введіть ваше імʼя:")
         await state.set_state(Register.first)
+        return
 
+    points = int(data.get("points", 0))
+    current, next_level = get_level(points)
+
+    if next_level:
+        need = next_level[1] - points
+        bar = progress_bar(points, current[1], next_level[1])
+        progress_text = (
+            f"\n📊 Прогрес: {bar}\n"
+            f"➡️ До **{next_level[0]}** залишилось **{need} грн**"
+        )
+    else:
+        progress_text = "\n🏆 Максимальний рівень досягнуто!"
+
+    await message.answer(
+        "💳 **Ваша карта лояльності ANSTORE**\n\n"
+        f"👤 {data['first_name']} {data['last_name']}\n"
+        f"📞 {data['phone']}\n\n"
+        f"⭐ Статус: **{current[0]}**\n"
+        f"💰 Знижка: **{current[2]}%**\n"
+        f"🎯 Бали: **{points}**"
+        f"{progress_text}",
+        reply_markup=main_menu()
+    )
+
+# ================= REGISTRATION =================
 @dp.message(Register.first)
 async def reg_first(message: Message, state: FSMContext):
     await state.update_data(first=message.text.strip())
@@ -171,24 +203,22 @@ async def reg_phone(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("✅ Карту лояльності створено!", reply_markup=main_menu())
 
-# ================= SERVICE CENTER (FIXED) =================
+# ================= SERVICE CENTER =================
 @dp.message(lambda m: m.text == "🛠 Сервісний центр")
 async def service_center(message: Message):
     kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(
-                text="📞 Звʼязатись з менеджером",
-                url="https://t.me/anstore_support"
-            )]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(
+            text="📞 Записатись до сервісу",
+            url=MANAGER_TG
+        )]]
     )
     await message.answer(
         "🛠 **Сервісний центр Anstore**\n\n"
         "• Ремонт iPhone\n"
         "• Заміна дисплею / скла\n"
-        "• Заміна акумулятора\n"
+        "• Акумулятори\n"
         "• Діагностика\n\n"
-        "👇 Натисніть кнопку, щоб записатись",
+        "👇 Натисніть кнопку для запису",
         reply_markup=kb
     )
 
@@ -197,9 +227,8 @@ async def service_center(message: Message):
 async def contact(message: Message):
     await message.answer(
         "📞 **Звʼязок з менеджером**\n\n"
-        "💬 Telegram: https://t.me/anstore_support\n"
-        "📞 Телефон: +380634739011\n"
-        "📍 Адреса: https://maps.app.goo.gl/GXY9KfhsVBJyxykv5"
+        "💬 Telegram:\nhttps://t.me/anstore_support\n\n"
+        "📞 Телефон:\n+380634739011"
     )
 
 # ================= ADMIN SEND =================
