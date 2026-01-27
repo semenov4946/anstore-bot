@@ -74,7 +74,7 @@ async def start_handler(message: Message):
 
     await message.answer(
         "🍏 Anstore | Apple сервіс та техніка\n\n"
-        "Ви підписані на оновлення та акції ✅\n"
+        "Ви підписані на оновлення з каналу ✅\n"
         "Оберіть розділ 👇",
         reply_markup=main_menu()
     )
@@ -187,10 +187,6 @@ async def contact(message: Message):
 # ================= CHANNEL AUTO POSTS =================
 @dp.channel_post()
 async def channel_post_handler(message: Message):
-    # ТІЛЬКИ АКЦІЇ
-    if message.text and "#акція" not in message.text.lower():
-        return
-
     for chat_id in list(SUBSCRIBERS):
         try:
             await bot.forward_message(
@@ -208,6 +204,9 @@ async def fallback(message: Message):
 
 # ================= RUN =================
 async def main():
+    # 🔴 КРИТИЧНО: скидаємо webhook
+    await bot.delete_webhook(drop_pending_updates=True)
+
     await dp.start_polling(
         bot,
         allowed_updates=["message", "channel_post"]
