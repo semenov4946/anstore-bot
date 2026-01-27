@@ -80,7 +80,7 @@ async def start_handler(message: Message):
     )
 
 # ================= IPHONES =================
-@dp.message(lambda m: m.text and "айфони" in m.text.lower())
+@dp.message(lambda m: m.text and "айфон" in m.text.lower())
 async def iphones(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -90,21 +90,24 @@ async def iphones(message: Message):
     await message.answer("📱 Актуальна наявність iPhone 👇", reply_markup=kb)
 
 # ================= PROMOTIONS =================
-@dp.message(lambda m: m.text and "акці" in m.text.lower())
+@dp.message(lambda m: m.text and "акц" in m.text.lower())
 async def promotions(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📢 Відкрити канал", url=CHANNEL_URL)]
+            [InlineKeyboardButton(
+                text="📢 Перейти в канал з акціями",
+                url=CHANNEL_URL
+            )]
         ]
     )
     await message.answer(
         "🎁 Актуальні акції Anstore 👇\n\n"
-        "У каналі натисніть на #акція",
+        "ℹ️ У каналі натисніть на **#акція**, щоб побачити всі пропозиції.",
         reply_markup=kb
     )
 
 # ================= LOYALTY =================
-@dp.message(lambda m: m.text and "карта" in m.text.lower())
+@dp.message(lambda m: m.text and "карт" in m.text.lower())
 async def loyalty(message: Message, state: FSMContext):
     await state.clear()
     user_id = message.from_user.id
@@ -156,14 +159,14 @@ async def reg_phone(message: Message, state: FSMContext):
     await state.clear()
     await message.answer("✅ Карту лояльності створено!", reply_markup=main_menu())
 
-# ================= CONTACT (FIXED) =================
+# ================= CONTACT (100% FIX) =================
 @dp.message(lambda m: m.text and "менеджер" in m.text.lower())
 async def contact(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="💬 Написати в Telegram", url=MANAGER_TG)],
             [InlineKeyboardButton(text="📞 Подзвонити", url=PHONE_URL)],
-            [InlineKeyboardButton(text="📍 Адреса магазину", url=MAPS_URL)]
+            [InlineKeyboardButton(text="📍 Адреса магазину", url=MAPS_URL)],
         ]
     )
     await message.answer(
