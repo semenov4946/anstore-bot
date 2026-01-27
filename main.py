@@ -27,6 +27,9 @@ CHANNEL_URL = "https://t.me/anstore_st"
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
+# ================= SUBSCRIBERS =================
+SUBSCRIBERS = set()
+
 # ================= STATES =================
 class Register(StatesGroup):
     first = State()
@@ -67,9 +70,12 @@ async def save_user(payload: dict):
 # ================= START =================
 @dp.message(Command("start"))
 async def start_handler(message: Message):
+    SUBSCRIBERS.add(message.chat.id)
+
     await message.answer(
         "🍏 Anstore | Apple сервіс та техніка\n\n"
-        "Оберіть потрібний розділ 👇",
+        "Ви підписані на оновлення та акції ✅\n"
+        "Оберіть розділ 👇",
         reply_markup=main_menu()
     )
 
@@ -78,7 +84,10 @@ async def start_handler(message: Message):
 async def iphones(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📢 Перейти в канал з наявністю", url=CHANNEL_URL)]
+            [InlineKeyboardButton(
+                text="📢 Перейти в канал з наявністю",
+                url=CHANNEL_URL
+            )]
         ]
     )
     await message.answer(
@@ -164,18 +173,33 @@ async def service(message: Message):
         "Деталі — у менеджера."
     )
 
-# ================= CONTACT (SIMPLE & 100% WORKING) =================
+# ================= CONTACT =================
 @dp.message(lambda m: m.text == "📞 Зв'язок з менеджером")
 async def contact(message: Message):
     await message.answer(
         "📞 Звʼязок з менеджером Anstore\n\n"
-        "💬 Telegram:\n"
-        "https://t.me/anstore_support\n\n"
-        "📞 Телефон:\n"
-        "+380634739011\n\n"
+        "💬 Telegram:\nhttps://t.me/anstore_support\n\n"
+        "📞 Телефон:\n+380634739011\n\n"
         "📍 Адреса магазину:\n"
         "https://maps.app.goo.gl/GXY9KfhsVBJyxykv5"
     )
+
+# ================= CHANNEL AUTO POSTS =================
+@dp.channel_post()
+async def channel_post_handler(message: Message):
+    # ТІЛЬКИ АКЦІЇ
+    if message.text and "#акція" not in message.text.lower():
+        return
+
+    for chat_id in list(SUBSCRIBERS):
+        try:
+            await bot.forward_message(
+                chat_id=chat_id,
+                from_chat_id=message.chat.id,
+                message_id=message.message_id
+            )
+        except:
+            SUBSCRIBERS.discard(chat_id)
 
 # ================= FALLBACK =================
 @dp.message()
