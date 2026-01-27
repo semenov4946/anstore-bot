@@ -21,7 +21,6 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("BOT_TOKEN is not set")
 
-# 👇 АДМІНИ (МОЖНА ДОДАВАТИ ЩЕ)
 ADMIN_IDS = {1488727512, 568179276}
 
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbz5oHAJVvLlg7KjeplVMVQQ_ApGzpHNbwinOi2l9ifmMcEFHg3M81Xc_zAzSjmZGs6I/exec"
@@ -30,7 +29,6 @@ CHANNEL_URL = "https://t.me/anstore_st"
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 
-# ================= SUBSCRIBERS =================
 SUBSCRIBERS = set()
 
 # ================= STATES =================
@@ -38,6 +36,16 @@ class Register(StatesGroup):
     first = State()
     last = State()
     phone = State()
+
+# ================= HELPERS =================
+def calc_status(points: int):
+    if points >= 50000:
+        return "Platinum", 15
+    if points >= 25000:
+        return "Gold", 10
+    if points >= 10000:
+        return "Silver", 7
+    return "Bronze", 5
 
 # ================= MENU =================
 def main_menu():
@@ -74,10 +82,8 @@ async def save_user(payload: dict):
 @dp.message(Command("start"))
 async def start_handler(message: Message):
     SUBSCRIBERS.add(message.chat.id)
-
     await message.answer(
-        "🍏 **Anstore | Apple сервіс та техніка**\n\n"
-        "Ви підписані на оновлення та акції ✅\n"
+        "🍏 Anstore | Apple сервіс та техніка\n\n"
         "Оберіть розділ 👇",
         reply_markup=main_menu()
     )
@@ -86,29 +92,25 @@ async def start_handler(message: Message):
 @dp.message(lambda m: m.text == "📱 Айфони в наявності")
 async def iphones(message: Message):
     kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(
-                text="📢 Перейти в канал з наявністю",
-                url=CHANNEL_URL
-            )]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(
+            text="📢 Перейти в канал",
+            url=CHANNEL_URL
+        )]]
     )
-    await message.answer(
-        "📱 Актуальна наявність iPhone з фото та цінами 👇",
-        reply_markup=kb
-    )
+    await message.answer("📱 Актуальна наявність iPhone 👇", reply_markup=kb)
 
 # ================= PROMOTIONS =================
 @dp.message(lambda m: m.text == "🎁 Акції")
 async def promotions(message: Message):
     kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📢 Відкрити канал", url=CHANNEL_URL)]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(
+            text="📢 Відкрити канал",
+            url=CHANNEL_URL
+        )]]
     )
     await message.answer(
-        "🎁 **Актуальні акції Anstore** 👇\n\n"
-        "ℹ️ У каналі натисніть на **#акція**, щоб побачити всі пропозиції.",
+        "🎁 Актуальні акції Anstore 👇\n\n"
+        "ℹ️ У каналі натисніть на #акція",
         reply_markup=kb
     )
 
@@ -124,12 +126,16 @@ async def loyalty(message: Message, state: FSMContext):
         data = {"found": False}
 
     if data.get("found"):
+        points = int(data.get("points", 0))
+        status, discount = calc_status(points)
+
         await message.answer(
-            "💳 **Ваша карта лояльності ANSTORE**\n\n"
+            "💳 Ваша карта лояльності ANSTORE\n\n"
             f"👤 {data['first_name']} {data['last_name']}\n"
             f"📞 {data['phone']}\n"
-            f"⭐ Статус: {data.get('status','Silver')}\n"
-            f"💰 Знижка: {data.get('discount',5)}%",
+            f"⭐ Статус: {status}\n"
+            f"💰 Знижка: {discount}%\n"
+            f"🎯 Бали: {points}",
             reply_markup=main_menu()
         )
     else:
@@ -156,83 +162,51 @@ async def reg_last(message: Message, state: FSMContext):
 @dp.message(Register.phone)
 async def reg_phone(message: Message, state: FSMContext):
     data = await state.get_data()
-
     await save_user({
         "user_id": str(message.from_user.id),
         "first_name": data["first"],
         "last_name": data["last"],
         "phone": message.contact.phone_number
     })
-
     await state.clear()
     await message.answer("✅ Карту лояльності створено!", reply_markup=main_menu())
-
-# ================= SERVICE =================
-@dp.message(lambda m: m.text == "🛠 Сервісний центр")
-async def service(message: Message):
-    await message.answer(
-        "🛠 **Сервісний центр Anstore**\n\n"
-        "• Ремонт iPhone\n"
-        "• Заміна скла / дисплею\n"
-        "• Заміна акумуляторів\n\n"
-        "📞 Деталі — у менеджера."
-    )
 
 # ================= CONTACT =================
 @dp.message(lambda m: m.text == "📞 Звʼязок з менеджером")
 async def contact(message: Message):
     await message.answer(
-        "📞 **Звʼязок з менеджером Anstore**\n\n"
+        "📞 Звʼязок з менеджером\n\n"
         "💬 Telegram: https://t.me/anstore_support\n"
         "📞 Телефон: +380634739011\n"
         "📍 Адреса: https://maps.app.goo.gl/GXY9KfhsVBJyxykv5"
     )
 
-# ================= ADMIN BROADCAST (TEXT + PHOTO) =================
+# ================= ADMIN SEND =================
 @dp.message(Command("send"))
 async def admin_send(message: Message):
     if message.from_user.id not in ADMIN_IDS:
         return
 
-    # 📸 ФОТО + ТЕКСТ
+    # Фото + текст
     if message.photo:
         caption = (message.caption or "").replace("/send", "", 1).strip()
-        sent = 0
-
         for chat_id in list(SUBSCRIBERS):
             try:
-                await bot.send_photo(
-                    chat_id,
-                    photo=message.photo[-1].file_id,
-                    caption=caption
-                )
-                sent += 1
+                await bot.send_photo(chat_id, message.photo[-1].file_id, caption=caption)
             except:
                 SUBSCRIBERS.discard(chat_id)
-
-        await message.answer(f"✅ Фото + текст розіслано: {sent}")
         return
 
-    # 📝 ТІЛЬКИ ТЕКСТ
+    # Тільки текст
     text = message.text.replace("/send", "", 1).strip()
     if not text:
-        await message.answer("❗ Використання:\n/send текст")
         return
 
-    sent = 0
     for chat_id in list(SUBSCRIBERS):
         try:
             await bot.send_message(chat_id, text)
-            sent += 1
         except:
             SUBSCRIBERS.discard(chat_id)
-
-    await message.answer(f"✅ Повідомлення розіслано: {sent}")
-
-# ================= FALLBACK =================
-@dp.message()
-async def fallback(message: Message):
-    await message.answer("Оберіть пункт з меню 👇", reply_markup=main_menu())
 
 # ================= RUN =================
 async def main():
