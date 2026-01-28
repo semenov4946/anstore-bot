@@ -24,10 +24,10 @@ if not TOKEN:
 ADMIN_IDS = {1488727512, 568179276}
 
 SHEETS_URL = "https://script.google.com/macros/s/AKfycbz5oHAJVvLlg7KjeplVMVQQ_ApGzpHNbwinOi2l9ifmMcEFHg3M81Xc_zAzSjmZGs6I/exec"
-
 CHANNEL_URL = "https://t.me/anstore_st"
+
 MANAGER_TG = "https://t.me/anstore_support"
-PHONE_URL = "tel:+380634739011"
+PHONE_TEL = "tel:+380634739011"
 MAP_URL = "https://maps.app.goo.gl/6zkS8iwpShFFTpEN6"
 
 # ================= BOT =================
@@ -105,9 +105,10 @@ async def start_handler(message: Message):
 @dp.message(lambda m: m.text == "📱 Айфони в наявності")
 async def iphones(message: Message):
     kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📢 Перейти в канал", url=CHANNEL_URL)]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(
+            text="📢 Перейти в канал",
+            url=CHANNEL_URL
+        )]]
     )
     await message.answer("📱 Актуальна наявність iPhone 👇", reply_markup=kb)
 
@@ -115,9 +116,10 @@ async def iphones(message: Message):
 @dp.message(lambda m: m.text == "🎁 Акції")
 async def promotions(message: Message):
     kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📢 Відкрити канал", url=CHANNEL_URL)]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(
+            text="📢 Відкрити канал",
+            url=CHANNEL_URL
+        )]]
     )
     await message.answer(
         "🎁 Актуальні акції Anstore 👇\n\nℹ️ У каналі натисніть на #акція",
@@ -147,7 +149,7 @@ async def loyalty(message: Message, state: FSMContext):
         "💳 Ваша карта лояльності ANSTORE\n\n"
         f"👤 {data['first_name']} {data['last_name']}\n"
         f"📞 {data['phone']}\n\n"
-        f"🏷 Рівень: {current[0]}\n"
+        f"🏷 Статус: {current[0]}\n"
         f"💰 Знижка: {current[2]}%\n"
         f"🎯 Бали: {points} грн\n"
     )
@@ -194,8 +196,8 @@ async def reg_phone(message: Message, state: FSMContext):
 async def service_center(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📍 Ми на карті", url=MAP_URL)],
-            [InlineKeyboardButton(text="📞 Записатись до сервісу", url=MANAGER_TG)]
+            [InlineKeyboardButton(text="📞 Записатись у сервіс", url=MANAGER_TG)],
+            [InlineKeyboardButton(text="📍 Ми на Google Maps", url=MAP_URL)]
         ]
     )
     await message.answer(
@@ -203,7 +205,8 @@ async def service_center(message: Message):
         "• Ремонт iPhone\n"
         "• Заміна дисплею / скла\n"
         "• Заміна акумулятора\n"
-        "• Діагностика",
+        "• Діагностика\n\n"
+        "👇 Оберіть дію",
         reply_markup=kb
     )
 
@@ -213,14 +216,12 @@ async def contact(message: Message):
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="💬 Написати в Telegram", url=MANAGER_TG)],
-            [InlineKeyboardButton(text="📞 Подзвонити", url=PHONE_URL)],
-            [InlineKeyboardButton(text="📍 Адреса магазину", url=MAP_URL)],
+            [InlineKeyboardButton(text="📞 Подзвонити", url=PHONE_TEL)],
+            [InlineKeyboardButton(text="📍 Адреса магазину", url=MAP_URL)]
         ]
     )
     await message.answer(
-        "📞 Звʼязок з менеджером Anstore\n\n"
-        "💬 Telegram: @anstore_support\n"
-        "📞 Телефон: 063 473 90 11",
+        "📞 Звʼязок з менеджером Anstore\n\nОберіть зручний спосіб 👇",
         reply_markup=kb
     )
 
@@ -249,6 +250,7 @@ async def admin_send(message: Message):
 # ================= RUN =================
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
+    print("🚀 Anstore bot started")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
