@@ -27,7 +27,7 @@ SHEETS_URL = "https://script.google.com/macros/s/AKfycbz5oHAJVvLlg7KjeplVMVQQ_Ap
 CHANNEL_URL = "https://t.me/anstore_st"
 
 MANAGER_TG = "https://t.me/anstore_support"
-PHONE_TEL = "tel:+380634739011"
+PHONE_NUMBER = "0634739011"
 MAP_URL = "https://maps.app.goo.gl/6zkS8iwpShFFTpEN6"
 
 # ================= BOT =================
@@ -97,7 +97,8 @@ async def save_user(payload: dict):
 async def start_handler(message: Message):
     SUBSCRIBERS.add(message.chat.id)
     await message.answer(
-        "🍏 Anstore | Apple сервіс та техніка\n\nОберіть розділ 👇",
+        "🍏 Anstore | Apple сервіс та техніка\n\n"
+        "Оберіть розділ 👇",
         reply_markup=main_menu()
     )
 
@@ -122,7 +123,8 @@ async def promotions(message: Message):
         )]]
     )
     await message.answer(
-        "🎁 Актуальні акції Anstore 👇\n\nℹ️ У каналі натисніть на #акція",
+        "🎁 Актуальні акції Anstore 👇\n\n"
+        "ℹ️ У каналі натисніть на #акція",
         reply_markup=kb
     )
 
@@ -194,35 +196,24 @@ async def reg_phone(message: Message, state: FSMContext):
 # ================= SERVICE CENTER =================
 @dp.message(lambda m: m.text == "🛠 Сервісний центр")
 async def service_center(message: Message):
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="📞 Записатись у сервіс", url=MANAGER_TG)],
-            [InlineKeyboardButton(text="📍 Ми на Google Maps", url=MAP_URL)]
-        ]
-    )
     await message.answer(
         "🛠 Сервісний центр Anstore\n\n"
         "• Ремонт iPhone\n"
         "• Заміна дисплею / скла\n"
         "• Заміна акумулятора\n"
         "• Діагностика\n\n"
-        "👇 Оберіть дію",
-        reply_markup=kb
+        f"📍 Адреса:\n{MAP_URL}\n\n"
+        f"💬 Менеджер:\n{MANAGER_TG}"
     )
 
-# ================= CONTACT =================
+# ================= CONTACT (100% WORKING) =================
 @dp.message(lambda m: m.text == "📞 Звʼязок з менеджером")
 async def contact(message: Message):
-    kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💬 Написати в Telegram", url=MANAGER_TG)],
-            [InlineKeyboardButton(text="📞 Подзвонити", url=PHONE_TEL)],
-            [InlineKeyboardButton(text="📍 Адреса магазину", url=MAP_URL)]
-        ]
-    )
     await message.answer(
-        "📞 Звʼязок з менеджером Anstore\n\nОберіть зручний спосіб 👇",
-        reply_markup=kb
+        "📞 Звʼязок з Anstore\n\n"
+        f"💬 Telegram:\n{MANAGER_TG}\n\n"
+        f"📞 Телефон:\n{PHONE_NUMBER}\n\n"
+        f"📍 Магазин на карті:\n{MAP_URL}"
     )
 
 # ================= ADMIN SEND =================
