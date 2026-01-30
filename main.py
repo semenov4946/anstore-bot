@@ -102,43 +102,66 @@ async def start_handler(message: Message):
         reply_markup=main_menu()
     )
 
-# ================= ALBUM STORAGE =================
+# ================= FORWARD FROM CHANNEL (AUTO POSTING) =================
 albums = {}
 
-# ================= ALBUM HANDLER =================
-@dp.message(lambda m: m.media_group_id)
-async def handle_album(message: Message):
-    gid = message.media_group_id
-    albums.setdefault(gid, []).append(message)
-
-    await asyncio.sleep(1)
-
-    if gid not in albums:
+@dp.message(lambda m: m.forward_from_chat)
+async def forward_from_channel(message: Message):
+    # тільки адміни
+    if message.from_user.id not in ADMIN_IDS:
         return
 
-    messages = albums.pop(gid)
+    # ===== АЛЬБОМ =====
+    if message.media_group_id:
+        gid = message.media_group_id
+        albums.setdefault(gid, []).append(message)
 
-    media = []
-    caption = messages[0].caption or ""
+        await asyncio.sleep(1)
 
-    # якщо це /send — чистимо
-    if caption.startswith("/send"):
-        caption = caption.replace("/send", "", 1).strip()
+        if gid not in albums:
+            return
 
-    for i, m in enumerate(messages):
-        media.append(
-            InputMediaPhoto(
-                media=m.photo[-1].file_id,
-                caption=caption if i == 0 else None
+        messages = albums.pop(gid)
+
+        media = []
+        caption = messages[0].caption or ""
+
+        for i, m in enumerate(messages):
+            media.append(
+                InputMediaPhoto(
+                    media=m.photo[-1].file_id,
+                    caption=caption if i == 0 else None
+                )
             )
-        )
 
-    # розсилка
-    for chat_id in list(SUBSCRIBERS):
-        try:
-            await bot.send_media_group(chat_id, media)
-        except:
-            SUBSCRIBERS.discard(chat_id)
+        for chat_id in list(SUBSCRIBERS):
+            try:
+                await bot.send_media_group(chat_id, media)
+            except:
+                SUBSCRIBERS.discard(chat_id)
+
+        return
+
+    # ===== ОДНЕ ФОТО =====
+    if message.photo:
+        for chat_id in list(SUBSCRIBERS):
+            try:
+                await bot.send_photo(
+                    chat_id,
+                    message.photo[-1].file_id,
+                    caption=message.caption or ""
+                )
+            except:
+                SUBSCRIBERS.discard(chat_id)
+        return
+
+    # ===== ТІЛЬКИ ТЕКСТ =====
+    if message.text:
+        for chat_id in list(SUBSCRIBERS):
+            try:
+                await bot.send_message(chat_id, message.text)
+            except:
+                SUBSCRIBERS.discard(chat_id)
 
 # ================= IPHONES =================
 @dp.message(lambda m: m.text == "📱 Айфони в наявності")
@@ -163,10 +186,9 @@ async def promotions(message: Message):
 @dp.message(lambda m: m.text == "💳 Моя карта лояльності")
 async def loyalty(message: Message, state: FSMContext):
     await state.clear()
-    user_id = message.from_user.id
 
     try:
-        data = await get_user(user_id)
+        data = await get_user(message.from_user.id)
     except:
         data = {"found": False}
 
@@ -221,26 +243,6 @@ async def contact(message: Message):
         f"📞 Телефон:\n{PHONE_NUMBER}\n\n"
         f"📍 Магазин на карті:\n{MAP_URL}"
     )
-
-# ================= ADMIN SEND (TEXT ONLY) =================
-@dp.message(Command("send"))
-async def admin_send_text(message: Message):
-    if message.from_user.id not in ADMIN_IDS:
-        return
-
-    # якщо це альбом — його забере handle_album
-    if message.media_group_id:
-        return
-
-    text = message.text.replace("/send", "", 1).strip()
-    if not text:
-        return
-
-    for chat_id in list(SUBSCRIBERS):
-        try:
-            await bot.send_message(chat_id, text)
-        except:
-            SUBSCRIBERS.discard(chat_id)
 
 # ================= RUN =================
 async def main():
