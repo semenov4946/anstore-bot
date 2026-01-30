@@ -9,7 +9,8 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
     KeyboardButton,
     InlineKeyboardMarkup,
-    InlineKeyboardButton
+    InlineKeyboardButton,
+    InputMediaPhoto
 )
 from aiogram.filters import Command
 from aiogram.fsm.state import StatesGroup, State
@@ -101,6 +102,44 @@ async def start_handler(message: Message):
         reply_markup=main_menu()
     )
 
+# ================= ALBUM STORAGE =================
+albums = {}
+
+# ================= ALBUM HANDLER =================
+@dp.message(lambda m: m.media_group_id)
+async def handle_album(message: Message):
+    gid = message.media_group_id
+    albums.setdefault(gid, []).append(message)
+
+    await asyncio.sleep(1)
+
+    if gid not in albums:
+        return
+
+    messages = albums.pop(gid)
+
+    media = []
+    caption = messages[0].caption or ""
+
+    # якщо це /send — чистимо
+    if caption.startswith("/send"):
+        caption = caption.replace("/send", "", 1).strip()
+
+    for i, m in enumerate(messages):
+        media.append(
+            InputMediaPhoto(
+                media=m.photo[-1].file_id,
+                caption=caption if i == 0 else None
+            )
+        )
+
+    # розсилка
+    for chat_id in list(SUBSCRIBERS):
+        try:
+            await bot.send_media_group(chat_id, media)
+        except:
+            SUBSCRIBERS.discard(chat_id)
+
 # ================= IPHONES =================
 @dp.message(lambda m: m.text == "📱 Айфони в наявності")
 async def iphones(message: Message):
@@ -155,36 +194,6 @@ async def loyalty(message: Message, state: FSMContext):
 
     await message.answer(text, reply_markup=main_menu())
 
-# ================= REGISTRATION =================
-@dp.message(Register.first)
-async def reg_first(message: Message, state: FSMContext):
-    await state.update_data(first=message.text.strip())
-    await message.answer("✍️ Введіть ваше прізвище:")
-    await state.set_state(Register.last)
-
-@dp.message(Register.last)
-async def reg_last(message: Message, state: FSMContext):
-    await state.update_data(last=message.text.strip())
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="📞 Поділитись номером", request_contact=True)]],
-        resize_keyboard=True,
-        one_time_keyboard=True
-    )
-    await message.answer("📞 Поділіться номером телефону:", reply_markup=kb)
-    await state.set_state(Register.phone)
-
-@dp.message(Register.phone)
-async def reg_phone(message: Message, state: FSMContext):
-    data = await state.get_data()
-    await save_user({
-        "user_id": str(message.from_user.id),
-        "first_name": data["first"],
-        "last_name": data["last"],
-        "phone": message.contact.phone_number
-    })
-    await state.clear()
-    await message.answer("✅ Карту лояльності створено!", reply_markup=main_menu())
-
 # ================= SERVICE CENTER =================
 @dp.message(lambda m: m.text == "🛠 Сервісний центр")
 async def service_center(message: Message):
@@ -213,56 +222,25 @@ async def contact(message: Message):
         f"📍 Магазин на карті:\n{MAP_URL}"
     )
 
-# ================= ADMIN SEND (TEXT + PHOTO) =================
+# ================= ADMIN SEND (TEXT ONLY) =================
 @dp.message(Command("send"))
-async def admin_send(message: Message):
+async def admin_send_text(message: Message):
     if message.from_user.id not in ADMIN_IDS:
         return
 
-    sent = 0
-
-    for chat_id in list(SUBSCRIBERS):
-        try:
-            if message.photo:
-                caption = (message.caption or "").replace("/send", "", 1).strip()
-                await bot.send_photo(
-                    chat_id,
-                    message.photo[-1].file_id,
-                    caption=caption
-                )
-            else:
-                text = message.text.replace("/send", "", 1).strip()
-                if not text:
-                    continue
-                await bot.send_message(chat_id, text)
-
-            sent += 1
-        except:
-            SUBSCRIBERS.discard(chat_id)
-
-    await message.answer(f"✅ Розіслано: {sent}")
-    
-    # ================= FORWARD FROM CHANNEL (AUTOPOST) =================
-@dp.message(lambda m: m.forward_from_chat is not None)
-async def forward_from_channel(message: Message):
-    # тільки адміни можуть пересилати
-    if message.from_user.id not in ADMIN_IDS:
+    # якщо це альбом — його забере handle_album
+    if message.media_group_id:
         return
 
-    sent = 0
+    text = message.text.replace("/send", "", 1).strip()
+    if not text:
+        return
 
     for chat_id in list(SUBSCRIBERS):
         try:
-            await bot.forward_message(
-                chat_id=chat_id,
-                from_chat_id=message.forward_from_chat.id,
-                message_id=message.forward_from_message_id
-            )
-            sent += 1
+            await bot.send_message(chat_id, text)
         except:
             SUBSCRIBERS.discard(chat_id)
-
-    await message.answer(f"✅ Пост з каналу розіслано: {sent} клієнтам")
 
 # ================= RUN =================
 async def main():
