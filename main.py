@@ -241,6 +241,28 @@ async def admin_send(message: Message):
             SUBSCRIBERS.discard(chat_id)
 
     await message.answer(f"✅ Розіслано: {sent}")
+    
+    # ================= FORWARD FROM CHANNEL (AUTOPOST) =================
+@dp.message(lambda m: m.forward_from_chat is not None)
+async def forward_from_channel(message: Message):
+    # тільки адміни можуть пересилати
+    if message.from_user.id not in ADMIN_IDS:
+        return
+
+    sent = 0
+
+    for chat_id in list(SUBSCRIBERS):
+        try:
+            await bot.forward_message(
+                chat_id=chat_id,
+                from_chat_id=message.forward_from_chat.id,
+                message_id=message.forward_from_message_id
+            )
+            sent += 1
+        except:
+            SUBSCRIBERS.discard(chat_id)
+
+    await message.answer(f"✅ Пост з каналу розіслано: {sent} клієнтам")
 
 # ================= RUN =================
 async def main():
