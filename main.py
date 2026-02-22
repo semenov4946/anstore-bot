@@ -216,6 +216,46 @@ async def loyalty(message: Message, state: FSMContext):
 
     await message.answer(text, reply_markup=main_menu())
 
+# ================= REGISTRATION =================
+@dp.message(Register.first)
+async def reg_first(message: Message, state: FSMContext):
+    await state.update_data(first=message.text.strip())
+    await message.answer("✍️ Введіть ваше прізвище:")
+    await state.set_state(Register.last)
+
+@dp.message(Register.last)
+async def reg_last(message: Message, state: FSMContext):
+    await state.update_data(last=message.text.strip())
+
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="📞 Поділитись номером", request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True
+    )
+
+    await message.answer("📞 Поділіться номером телефону:", reply_markup=kb)
+    await state.set_state(Register.phone)
+
+@dp.message(Register.phone)
+async def reg_phone(message: Message, state: FSMContext):
+    data = await state.get_data()
+
+    # якщо поділився контактом
+    if message.contact:
+        phone = message.contact.phone_number
+    else:
+        phone = message.text
+
+    await save_user({
+        "user_id": str(message.from_user.id),
+        "first_name": data["first"],
+        "last_name": data["last"],
+        "phone": phone
+    })
+
+    await state.clear()
+    await message.answer("✅ Карту лояльності створено!", reply_markup=main_menu())
+
 # ================= SERVICE CENTER =================
 @dp.message(lambda m: m.text == "🛠 Сервісний центр")
 async def service_center(message: Message):
